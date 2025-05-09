@@ -17,6 +17,9 @@ class MainWindow(QWidget):
         self.setWindowTitle("Photo Album App")
         self.setMinimumSize(800, 480)
 
+        self.folder_path = ''
+        self.image_list = []
+        self.current_index = -1
         self.metadata_changed = False
         self.people_list = ["Person 1", "Person 2", "Person 3"]  # Predefined people
 
@@ -129,10 +132,35 @@ class MainWindow(QWidget):
         self.metadata_changed = True
     
     def load_folder(self):
-        pass
+        folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
+        if folder:
+            self.folder_path = folder
+            self.image_list = [f for f in os.listdir(folder) if f.lower().endswith(('jpg', 'jpeg', 'png'))]
+            self.current_index = 0
+            self.load_image()
     
-    def read_metadata(self):
-        pass
+    def load_image(self):
+        if self.metadata_changed:
+            QMessageBox.warning(self, "Unsaved Changes", "Please save changes before navigating.")
+            return
+
+        if 0 <= self.current_index < len(self.image_list):
+            image_path = os.path.join(self.folder_path, self.image_list[self.current_index])
+            pixmap = QPixmap(image_path).scaledToWidth(400, Qt.TransformationMode.SmoothTransformation)
+            self.image_label.setPixmap(pixmap)
+            self.read_metadata(image_path)
+    
+    def read_metadata(self, image_path):
+        with exiftool.ExifTool() as et:
+            output = et.execute(b"-j", image_path.encode("utf-8"))
+            metadata = json.loads(output)[0]
+
+        self.description.setText(metadata.get('XMP:Description', ''))
+        self.location.setText(metadata.get('XMP:Location', ''))
+        self.date.setText(metadata.get('EXIF:DateTimeOriginal', ''))
+        # Simplify other metadata display
+        self.other_metadata.setText('\n'.join(f"{k}: {v}" for k, v in metadata.items()))
+        self.metadata_changed = False
     
     def populate_people_list(self):
         self.people_list_widget.clear()
