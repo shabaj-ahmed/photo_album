@@ -216,10 +216,14 @@ class MainWindow(QWidget):
         pass
 
     def next_image(self):
-        pass
+        if self.current_index < len(self.image_list) - 1:
+            self.current_index += 1
+            self.load_image()
 
     def prev_image(self):
-        pass
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.load_image()
     
 if __name__ == "__main__":
     app = QApplication(sys.argv)
