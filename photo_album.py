@@ -216,11 +216,17 @@ class MainWindow(QWidget):
         pass
 
     def next_image(self):
+        if self.metadata_changed:
+            QMessageBox.warning(self, "Unsaved Changes", "Please save changes before navigating.")
+            return
         if self.current_index < len(self.image_list) - 1:
             self.current_index += 1
             self.load_image()
 
     def prev_image(self):
+        if self.metadata_changed:
+            QMessageBox.warning(self, "Unsaved Changes", "Please save changes before navigating.")
+            return
         if self.current_index > 0:
             self.current_index -= 1
             self.load_image()
