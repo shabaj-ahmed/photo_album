@@ -43,7 +43,10 @@ class MainWindow(QWidget):
         # Show duplicates toggle (placeholder for now)
 
         # View selector
-        # Zoom in/Out and automatically change from grid to single view
+        self.back_button = QPushButton("Back to Grid")
+        self.back_button.clicked.connect(self.display_grid_view)
+        self.back_button.hide()
+        self.header_layout.addWidget(self.back_button)
 
         # Spacer
         self.header_layout.addStretch()
@@ -181,17 +184,24 @@ class MainWindow(QWidget):
     
     def display_grid_view(self):
         self.clear_layout(self.grid_layout)
+        self.scroll_area.show()  # Make sure grid area is visible again
         self.full_image_label.hide()
         self.metadata_widget.hide()
         self.prev_button.hide()
         self.next_button.hide()
+        self.back_button.hide()  # Optional: or keep it visible if needed
 
         for i, filename in enumerate(self.image_list):
             image_path = os.path.join(self.folder_path, filename)
             pixmap = QPixmap(image_path).scaledToWidth(200, Qt.TransformationMode.SmoothTransformation)
             thumb_label = QLabel()
             thumb_label.setPixmap(pixmap)
-            thumb_label.mousePressEvent = lambda event, idx=i: self.show_fullscreen_image(idx)
+
+            # Wrap in a lambda to avoid late-binding bug
+            def handler(event, idx=i):
+                self.show_fullscreen_image(idx)
+            thumb_label.mouseDoubleClickEvent = handler
+
             self.grid_layout.addWidget(thumb_label, i // 4, i % 4)
     
     def show_fullscreen_image(self, index):
@@ -205,6 +215,7 @@ class MainWindow(QWidget):
         self.metadata_widget.show()
         self.prev_button.show()
         self.next_button.show()
+        self.back_button.show()
 
         cursor = self.db.cursor()
         cursor.execute("SELECT description, people FROM ImageMetadata WHERE filename = ?", (filename,))
