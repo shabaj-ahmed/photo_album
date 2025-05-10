@@ -2,14 +2,13 @@ import sys
 import os
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-    QFileDialog, QCheckBox, QLineEdit, QTextEdit, QComboBox, QMessageBox,
-    QListWidget, QListWidgetItem, QInputDialog
+    QFileDialog, QCheckBox, QLineEdit, QTextEdit, QMessageBox, QListWidget,
+    QListWidgetItem, QInputDialog, QScrollArea, QGridLayout, QSplitter
 )
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
-import exiftool
-import json
+import sqlite3
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -23,16 +22,23 @@ class MainWindow(QWidget):
         self.metadata_changed = False
         self.people_list = ["Person 1", "Person 2", "Person 3"]  # Predefined people
 
+        self.db = None
+        self.filter_mode = False # Filter for displaying tagged or untagged images
+
         self.setup_ui()
     
     def setup_ui(self):
         # === Root Layout ===
-        root_layout = QVBoxLayout()
+        self.root_layout = QVBoxLayout()
 
         # === Header Layout ===
-        header_layout = QHBoxLayout()
+        self.header_layout = QHBoxLayout()
 
         # Filters (placeholder for now)
+        self.filter_checkbox = QCheckBox("Filter by Tags")
+        self.filter_checkbox.setChecked(self.filter_mode)
+        self.filter_checkbox.stateChanged.connect(self.toggle_filter_mode)
+        self.header_layout.addWidget(self.filter_checkbox)
 
         # Show duplicates toggle (placeholder for now)
 
@@ -40,127 +46,182 @@ class MainWindow(QWidget):
         # Zoom in/Out and automatically change from grid to single view
 
         # Spacer
-        header_layout.addStretch()
+        self.header_layout.addStretch()
 
         # Reset/clear all Filters button (placeholder for now)
 
-        root_layout.addLayout(header_layout)
+        self.root_layout.addLayout(self.header_layout)
 
         # === Main Content Layout ===
-        main_content_layout = QHBoxLayout()
+        self.main_content_layout = QHBoxLayout()
+
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # === Left Panel: Image Display + Nav ===
-        image_nav_layout = QVBoxLayout()
+        self.left_panel = QWidget()
+        self.image_nav_layout = QVBoxLayout(self.left_panel)
 
         # Image display
-        self.image_label = QLabel("No image loaded")
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        image_nav_layout.addWidget(self.image_label)
+            ## Scrollable area for grid view
+        self.scroll_area = QScrollArea()
+        self.grid_widget = QWidget()
+        self.grid_layout = QGridLayout()
+        self.grid_widget.setLayout(self.grid_layout)
+        self.scroll_area.setWidget(self.grid_widget)
+        self.scroll_area.setWidgetResizable(True)
+        self.image_nav_layout.addWidget(self.scroll_area)
+
+            ## Full-screen view
+        self.full_image_label = QLabel()
+        self.full_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.full_image_label.hide()
+        self.image_nav_layout.addWidget(self.full_image_label)
 
         # Navigation buttons
-        nav_layout = QHBoxLayout()
+        self.nav_layout = QHBoxLayout()
         self.load_button = QPushButton("Load Folder")
         self.prev_button = QPushButton("← Prev")
         self.next_button = QPushButton("Next →")
-        nav_layout.addWidget(self.load_button)
-        nav_layout.addWidget(self.prev_button)
-        nav_layout.addWidget(self.next_button)
+        self.prev_button.hide()
+        self.next_button.hide()
+        self.nav_layout.addWidget(self.load_button)
+        self.nav_layout.addWidget(self.prev_button)
+        self.nav_layout.addWidget(self.next_button)
+        self.image_nav_layout.addLayout(self.nav_layout)
 
-        image_nav_layout.addLayout(nav_layout)
-        main_content_layout.addLayout(image_nav_layout, 7)  # 7/10 of width
+        self.splitter.addWidget(self.left_panel)
 
         # === Right Panel: Metadata Editor ===
-        form_layout = QVBoxLayout()
-        form_layout.addWidget(QLabel("Description:"))
+        self.metadata_panel = QVBoxLayout()
+        self.metadata_panel.addWidget(QLabel("Description:"))
         self.description = QTextEdit()
-        form_layout.addWidget(self.description)
+        self.metadata_panel.addWidget(self.description)
 
-        form_layout.addWidget(QLabel("Who is in the photo:"))
+        self.metadata_panel.addWidget(QLabel("Who is in the photo:"))
         self.people_list_widget = QListWidget()
         self.people_list_widget.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
-        form_layout.addWidget(self.people_list_widget)
+        self.metadata_panel.addWidget(self.people_list_widget)
         self.populate_people_list()
         self.people_list_widget.itemClicked.connect(self.handle_person_click)
-        form_layout.addWidget(self.people_list_widget)
+        self.metadata_panel.addWidget(self.people_list_widget)
 
-        form_layout.addWidget(QLabel("Group:"))
+        self.metadata_panel.addWidget(QLabel("Group:"))
         self.group_list_widget = QListWidget()
         self.group_list_widget.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
-        form_layout.addWidget(self.group_list_widget)
+        self.metadata_panel.addWidget(self.group_list_widget)
         self.populate_group_list()
         self.group_list_widget.itemClicked.connect(self.handle_group_click)
-        form_layout.addWidget(self.group_list_widget)
+        self.metadata_panel.addWidget(self.group_list_widget)
 
-        form_layout.addWidget(QLabel("Location:"))
+        self.metadata_panel.addWidget(QLabel("Location:"))
         self.location = QLineEdit()
-        form_layout.addWidget(self.location)
+        self.metadata_panel.addWidget(self.location)
 
-        form_layout.addWidget(QLabel("Date:"))
+        self.metadata_panel.addWidget(QLabel("Date:"))
         self.date = QLineEdit()
-        form_layout.addWidget(self.date)
-
-        form_layout.addWidget(QLabel("Other Metadata:"))
-        self.other_metadata = QTextEdit()
-        form_layout.addWidget(self.other_metadata)
+        self.metadata_panel.addWidget(self.date)
 
         # Save button
         self.save_button = QPushButton("Save Metadata")
-        form_layout.addWidget(self.save_button)
+        self.metadata_panel.addWidget(self.save_button)
 
-        main_content_layout.addLayout(form_layout, 3)  # 3/10 of width
 
         # Add to root layout
-        root_layout.addLayout(main_content_layout)
+        self.metadata_widget = QWidget()
+        self.metadata_widget.setLayout(self.metadata_panel)
+        self.metadata_widget.hide()  # Hide the form layout initially
+        self.splitter.addWidget(self.metadata_widget)
+        self.splitter.setSizes([7, 3])
 
-        self.setLayout(root_layout)
+        self.root_layout.addWidget(self.splitter)
+
+        self.setLayout(self.root_layout)
 
         # Connect buttons (no change)
         self.load_button.clicked.connect(self.load_folder)
         self.prev_button.clicked.connect(self.prev_image)
         self.next_button.clicked.connect(self.next_image)
         self.save_button.clicked.connect(self.save_metadata)
-
-        # Track changes
-        self.description.textChanged.connect(self.mark_dirty)
-        self.people_list_widget.itemChanged.connect(self.mark_dirty)
-        self.group_list_widget.itemChanged.connect(self.mark_dirty)
-        self.location.textChanged.connect(self.mark_dirty)
-        self.date.textChanged.connect(self.mark_dirty)
-        self.other_metadata.textChanged.connect(self.mark_dirty)
-
-    def mark_dirty(self):
-        self.metadata_changed = True
     
+    def toggle_filter_mode(self, state):
+        self.filter_mode = bool(state)
+        self.apply_filter()
+
     def load_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
         if folder:
             self.folder_path = folder
-            self.image_list = [f for f in os.listdir(folder) if f.lower().endswith(('jpg', 'jpeg', 'png'))]
-            self.current_index = 0
-            self.load_image()
+            self.init_db()
+            self.scan_folder()
+            self.apply_filter()
     
-    def load_image(self):
-        if self.metadata_changed:
-            QMessageBox.warning(self, "Unsaved Changes", "Please save changes before navigating.")
-            return
+    def init_db(self):
+        db_path = os.path.join(self.folder_path, "metadata.db")
+        self.db = sqlite3.connect(db_path)
+        cursor = self.db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ImageMetadata (
+                id INTEGER PRIMARY KEY,
+                filename TEXT UNIQUE,
+                description TEXT,
+                people TEXT,
+                tagged INTEGER DEFAULT 0
+            )
+        """)
+        self.db.commit()
 
-        if 0 <= self.current_index < len(self.image_list):
-            image_path = os.path.join(self.folder_path, self.image_list[self.current_index])
-            pixmap = QPixmap(image_path).scaledToWidth(400, Qt.TransformationMode.SmoothTransformation)
-            self.image_label.setPixmap(pixmap)
-            self.read_metadata(image_path)
+    def apply_filter(self):
+        cursor = self.db.cursor()
+        if self.filter_mode:
+            cursor.execute("SELECT filename FROM ImageMetadata WHERE tagged = 1")
+        else:
+            cursor.execute("SELECT filename FROM ImageMetadata WHERE tagged = 0")
+        self.image_list = [row[0] for row in cursor.fetchall()]
+        self.display_grid_view()
     
-    def read_metadata(self, image_path):
-        with exiftool.ExifTool() as et:
-            output = et.execute(b"-j", image_path.encode("utf-8"))
-            metadata = json.loads(output)[0]
+    def display_grid_view(self):
+        self.clear_layout(self.grid_layout)
+        self.full_image_label.hide()
+        self.metadata_widget.hide()
+        self.prev_button.hide()
+        self.next_button.hide()
 
-        self.description.setText(metadata.get('XMP:Description', ''))
-        self.location.setText(metadata.get('XMP:Location', ''))
-        self.date.setText(metadata.get('EXIF:DateTimeOriginal', ''))
-        # Simplify other metadata display
-        self.other_metadata.setText('\n'.join(f"{k}: {v}" for k, v in metadata.items()))
-        self.metadata_changed = False
+        for i, filename in enumerate(self.image_list):
+            image_path = os.path.join(self.folder_path, filename)
+            pixmap = QPixmap(image_path).scaledToWidth(200, Qt.TransformationMode.SmoothTransformation)
+            thumb_label = QLabel()
+            thumb_label.setPixmap(pixmap)
+            thumb_label.mousePressEvent = lambda event, idx=i: self.show_fullscreen_image(idx)
+            self.grid_layout.addWidget(thumb_label, i // 4, i % 4)
+    
+    def show_fullscreen_image(self, index):
+        self.current_index = index
+        filename = self.image_list[self.current_index]
+        image_path = os.path.join(self.folder_path, filename)
+        pixmap = QPixmap(image_path).scaledToWidth(800, Qt.TransformationMode.SmoothTransformation)
+        self.full_image_label.setPixmap(pixmap)
+        self.scroll_area.hide()
+        self.full_image_label.show()
+        self.metadata_widget.show()
+        self.prev_button.show()
+        self.next_button.show()
+
+        cursor = self.db.cursor()
+        cursor.execute("SELECT description, people FROM ImageMetadata WHERE filename = ?", (filename,))
+        row = cursor.fetchone()
+        if row:
+            self.description.setText(row[0] or '')
+            people = row[1].split(',') if row[1] else []
+            for i in range(self.people_list_widget.count()):
+                item = self.people_list_widget.item(i)
+                item.setSelected(item.text() in people)
+
+    def scan_folder(self):
+        cursor = self.db.cursor()
+        for f in os.listdir(self.folder_path):
+            if f.lower().endswith((".jpg", ".jpeg", ".png")):
+                cursor.execute("INSERT OR IGNORE INTO ImageMetadata (filename) VALUES (?)", (f,))
+        self.db.commit()
     
     def populate_people_list(self):
         self.people_list_widget.clear()
@@ -214,6 +275,7 @@ class MainWindow(QWidget):
 
     def save_metadata(self):
         pass
+        # Display success message (How to toast in PyQt?)
 
     def next_image(self):
         if self.metadata_changed:
@@ -221,7 +283,7 @@ class MainWindow(QWidget):
             return
         if self.current_index < len(self.image_list) - 1:
             self.current_index += 1
-            self.load_image()
+            self.show_fullscreen_image(self.current_index)
 
     def prev_image(self):
         if self.metadata_changed:
@@ -229,7 +291,13 @@ class MainWindow(QWidget):
             return
         if self.current_index > 0:
             self.current_index -= 1
-            self.load_image()
+            self.show_fullscreen_image(self.current_index)
+
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
     
 if __name__ == "__main__":
     app = QApplication(sys.argv)
