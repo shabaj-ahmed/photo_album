@@ -23,7 +23,7 @@ class MainWindow(QWidget):
         self.people_list = ["Person 1", "Person 2", "Person 3"]  # Predefined people
 
         self.db = None
-        self.filter_mode = False # Filter for displaying tagged or untagged images
+        # self.filter_mode = False # Filter for displaying tagged or untagged images
 
         self.setup_ui()
     
@@ -35,10 +35,10 @@ class MainWindow(QWidget):
         self.header_layout = QHBoxLayout()
 
         # Filters (placeholder for now)
-        self.filter_checkbox = QCheckBox("Filter by Tags")
-        self.filter_checkbox.setChecked(self.filter_mode)
-        self.filter_checkbox.stateChanged.connect(self.toggle_filter_mode)
-        self.header_layout.addWidget(self.filter_checkbox)
+        # self.filter_checkbox = QCheckBox("Filter by Tags")
+        # self.filter_checkbox.setChecked(self.filter_mode)
+        # self.filter_checkbox.stateChanged.connect(self.toggle_filter_mode)
+        # self.header_layout.addWidget(self.filter_checkbox)
 
         # Show duplicates toggle (placeholder for now)
 
@@ -153,9 +153,9 @@ class MainWindow(QWidget):
         self.next_button.clicked.connect(self.next_image)
         self.save_button.clicked.connect(self.save_metadata)
     
-    def toggle_filter_mode(self, state):
-        self.filter_mode = bool(state)
-        self.apply_filter()
+    # def toggle_filter_mode(self, state):
+    #     self.filter_mode = bool(state)
+    #     self.apply_filter()
 
     def load_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
@@ -170,8 +170,8 @@ class MainWindow(QWidget):
         db_path = os.path.join(self.folder_path, "metadata.db")
         self.db = DatabaseManager(db_path)
 
-    def apply_filter(self):
-        pass
+    # def apply_filter(self):
+    #     pass
     
     def display_grid_view(self):
         self.clear_layout(self.grid_layout)
@@ -180,6 +180,9 @@ class MainWindow(QWidget):
         self.full_image_label.hide()
         self.metadata_widget.hide()
         self.back_button.hide()
+        self.prev_button.hide()
+        self.next_button.hide()
+
 
         for i, filename in enumerate(self.image_list):
             image_path = os.path.join(self.folder_path, filename)
@@ -206,6 +209,9 @@ class MainWindow(QWidget):
         self.metadata_widget.show()
         self.back_button.show()
         self.splitter.setSizes([7, 3])
+        self.prev_button.show()
+        self.next_button.show()
+
 
         # Load from DB
         metadata = self.db.load_image_metadata(filename)
