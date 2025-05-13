@@ -297,7 +297,43 @@ class MainWindow(QWidget):
                     self.metadata_changed = True
 
     def save_metadata(self):
-        pass
+        if 0 <= self.current_index < len(self.image_list):
+            filename = self.image_list[self.current_index]
+            description = self.description.toPlainText()
+            location = self.location.text()
+            date = self.date.text()
+
+            # Get selected people
+            selected_people = [
+                item.text() for item in self.people_list_widget.selectedItems()
+                if item.text() != "+ Add New..."
+            ]
+
+            # Get selected groups
+            selected_groups = [
+                item.text() for item in self.group_list_widget.selectedItems()
+                if item.text() != "+ Add New..."
+            ]
+
+            # Get selected emotions
+            selected_emotions = [
+                item.text() for item in self.emotion_list_widget.selectedItems()
+                if item.text() != "+ Add New..."
+            ]
+
+            # Save everything to the database
+            self.db.save_metadata(
+                filename=filename,
+                description=description,
+                people=selected_people,
+                groups=selected_groups,
+                emotions=selected_emotions,
+                location=location,
+                date=date
+            )
+
+            QMessageBox.information(self, "Saved", "Metadata saved.")
+            self.metadata_changed = False
 
         # Display success message (How to toast in PyQt?)
 
