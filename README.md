@@ -124,7 +124,7 @@ The database schema was chosen to support the structured organisation and retrie
 - **Queryability** – The design supports efficient filtering and searching of images by associated tags, such as person, group, or emotion.
 
 <p align="center">
-  <img src="https://github.com/shabaj-ahmed/photo_album/blob/master/ERD.png" width="600" />
+  <img src="https://github.com/shabaj-ahmed/photo_album/blob/main/ERD.png" width="600" />
 </p>
 <p align="center"><em>Figure 1: Entity-Relationship Diagram illustrating the relationships between the tables in the database.</em></p>
 
