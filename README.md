@@ -3,11 +3,18 @@ Over the years, I’ve taken thousands of photos capturing special occasions, tr
 
 This project set out to solve that problem by creating a lightweight desktop application that allows all my photos to be stored in a single, unstructured folder, while enabling meaningful organisation and retrieval through tagging. I wanted the ability to add custom metadata to each image, such as the people present, the event, the location, and even the emotion it captures.
 
-With this functionality, I can easily filter images to find exactly what I’m looking for. Whether it’s to reminisce about a particular trip, collect all the photos of a specific family member, or rediscover forgotten memories. The application is also designed as a digital photo album to enjoy with friends or relatives, allowing us to rediscover memories togetoger.
+With this functionality, I can easily filter images to find exactly what I’m looking for, whether it’s to reminisce about a particular trip, collect all the photos of a specific family member, or rediscover forgotten memories. The application is also designed as a digital photo album to enjoy with friends or relatives, allowing us to rediscover memories together.
 
 The project prioritises simplicity, privacy, and offline use. It is not designed for cloud syncing or large-scale deployment, but rather as a personal, private tool for preserving, organising, retrieving, and sharing cherished memories.
 
-# System design
+## Key Features
+- Tag images with people, events, locations, emotions, and dates.
+- Search and filter using multiple tag combinations.
+- Detect and review duplicate images.
+- Perform batch tagging and image operations.
+- Offline use with no external dependencies.
+
+# System Requirements
 This section outlines the design requirements for the photo album application, focusing on what users need from the system and how the system should behave. It is divided into three parts: user requirements that describe the goals from the user's perspective, functional requirements that specify what the system shall do, and non-functional requirements that define the quality attributes of the system.
 
 ## User Requirements (UR)
@@ -91,6 +98,11 @@ To overcome this, I chose a non-destructive, format-independent method: storing 
 
 This decision supports scalability, maintainability, and user convenience—key goals for the project.
 
+## Performance considerations
+Although performance was not a primary design goal, practical steps were taken to ensure the application remains responsive when working with large collections of photos. Images are loaded at reduced resolution to conserve memory and speed up rendering. Additionally, pagination was implemented to avoid loading all images at once, which could otherwise cause the application to become sluggish or unresponsive when browsing folders containing hundreds or thousands of files. These optimisations allow the application to remain lightweight while handling real-world datasets efficiently.
+
+These performance decisions were made to ensure the application remains responsive without introducing architectural complexity. They align with the broader design trade-offs: prioritising simplicity, clarity, and ease of use over scalability or cloud-based features.
+
 # Technology
 ## Python Libraries and Tools
 - **PyQt6** – for building the GUI.
@@ -100,7 +112,7 @@ This decision supports scalability, maintainability, and user convenience—key 
 The photo album application was developed using a simple, modular design that reflects its limited scope and focused purpose: to make photo tagging and filtering straightforward and user-friendly. The system was not intended to be scaled or deployed in complex environments, so the emphasis was placed on clarity, maintainability, and ease of use.
 
 - **Object-Oriented Programming (OOP)**: Key components—such as image handling, metadata management, and user interface logic—were implemented as classes to improve separation of concerns and facilitate future updates.
-- **Basic Application of the Single Responsibility Principle**: Functions and classes were generally written to perform a single, clearly defined task, which helps keep the code understandable and easier to debug.
+- **Single Responsibility Principle**: Functions and classes were generally written to perform a single, clearly defined task, which helps keep the code understandable and easier to debug.
 - **Minimal External Dependencies**: Core functionality is implemented using standard Python libraries and PyQt6, making the application lightweight, portable, and easy to set up locally.
 - **Readability Over Optimisation**: Code was written with an emphasis on readability rather than performance or scalability, in line with the project’s aim to be easy to maintain and adapt by others.
 
@@ -113,5 +125,4 @@ While the application meets its core goals, there are a few limitations in the c
 - **Undo Operations**: There is currently no undo functionality for deletions, tag edits, or batch operations. Introducing an undo/redo system would help prevent accidental data loss and give users more confidence when performing bulk edits or deletions.
 - **File Renaming**: At present, the application does not support renaming image files. Providing the option to rename files—either manually or based on metadata—could improve consistency and make exported or shared files more meaningful.
 
-These limitations were intentionally accepted to keep the initial system lightweight and easy to use. However, addressing them in future iterations could improve usability and extend the system's capabilities without compromising its core values of simplicity and privacy.
-
+These limitations were consciously accepted in order to keep the initial system lightweight, focused, and easy to maintain. However, addressing them in future iterations could improve usability and extend the system's capabilities without compromising its core values of simplicity and privacy.
