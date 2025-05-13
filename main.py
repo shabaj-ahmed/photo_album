@@ -207,7 +207,27 @@ class MainWindow(QWidget):
         self.back_button.show()
         self.splitter.setSizes([7, 3])
 
-        # Load metadata for the current image
+        # Load from DB
+        metadata = self.db.load_image_metadata(filename)
+        people = set(self.db.get_people_for_image(filename))
+        groups = set(self.db.get_groups_for_image(filename))
+        emotions = set(self.db.get_emotions_for_image(filename))
+
+        self.description.setPlainText(metadata["description"])
+        self.location.setText(metadata["location"])
+        self.date.setText(metadata["date"])
+
+        for i in range(self.people_list_widget.count()):
+            item = self.people_list_widget.item(i)
+            item.setSelected(item.text() in people)
+
+        for i in range(self.group_list_widget.count()):
+            item = self.group_list_widget.item(i)
+            item.setSelected(item.text() in groups)
+
+        for i in range(self.emotion_list_widget.count()):
+            item = self.emotion_list_widget.item(i)
+            item.setSelected(item.text() in emotions)
 
     def scan_folder(self):
         # Get all image files from the folder

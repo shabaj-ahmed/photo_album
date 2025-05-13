@@ -58,6 +58,23 @@ class DatabaseManager:
         """)
         self.conn.commit()
 
+    def insert_images_if_missing(self, filenames):
+        """
+        Add filenames to ImageMetadata if they don't already exist.
+        Returns a list of filenames that are in the database (for UI display).
+        """
+        cursor = self.conn.cursor()
+        for filename in filenames:
+            cursor.execute("""
+                INSERT OR IGNORE INTO ImageMetadata (filename)
+                VALUES (?)
+            """, (filename,))
+        self.conn.commit()
+
+        # Return all filenames known to the DB for display
+        cursor.execute("SELECT filename FROM ImageMetadata")
+        return [row[0] for row in cursor.fetchall()]
+    
     def save_metadata(self, filename, description, people, groups, emotions, location, date):
         cursor = self.conn.cursor()
 
@@ -104,19 +121,49 @@ class DatabaseManager:
 
         self.conn.commit()
 
-    def insert_images_if_missing(self, filenames):
-        """
-        Add filenames to ImageMetadata if they don't already exist.
-        Returns a list of filenames that are in the database (for UI display).
-        """
+    def load_image_metadata(self, filename):
         cursor = self.conn.cursor()
-        for filename in filenames:
-            cursor.execute("""
-                INSERT OR IGNORE INTO ImageMetadata (filename)
-                VALUES (?)
-            """, (filename,))
-        self.conn.commit()
-
-        # Return all filenames known to the DB for display
-        cursor.execute("SELECT filename FROM ImageMetadata")
+        cursor.execute("""
+            SELECT description, location, date
+            FROM ImageMetadata
+            WHERE filename = ?
+        """, (filename,))
+        row = cursor.fetchone()
+        return {
+            "description": row[0] if row else "",
+            "location": row[1] if row else "",
+            "date": row[2] if row else ""
+        }
+    
+    def get_people_for_image(self, filename):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT Person.name
+            FROM ImagePerson
+            JOIN Person ON ImagePerson.person_id = Person.id
+            JOIN ImageMetadata ON ImagePerson.image_id = ImageMetadata.id
+            WHERE ImageMetadata.filename = ?
+        """, (filename,))
+        return [row[0] for row in cursor.fetchall()]
+    
+    def get_groups_for_image(self, filename):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT GroupTag.name
+            FROM ImageGroup
+            JOIN GroupTag ON ImageGroup.group_id = GroupTag.id
+            JOIN ImageMetadata ON ImageGroup.image_id = ImageMetadata.id
+            WHERE ImageMetadata.filename = ?
+        """, (filename,))
+        return [row[0] for row in cursor.fetchall()]
+    
+    def get_emotions_for_image(self, filename):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT EmotionTag.name
+            FROM ImageEmotion
+            JOIN EmotionTag ON ImageEmotion.emotion_id = EmotionTag.id
+            JOIN ImageMetadata ON ImageEmotion.image_id = ImageMetadata.id
+            WHERE ImageMetadata.filename = ?
+        """, (filename,))
         return [row[0] for row in cursor.fetchall()]
