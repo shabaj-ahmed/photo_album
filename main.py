@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
-import sqlite3
+from database import DatabaseManager
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -112,6 +112,14 @@ class MainWindow(QWidget):
         self.group_list_widget.itemClicked.connect(self.handle_group_click)
         self.metadata_panel.addWidget(self.group_list_widget)
 
+        self.metadata_panel.addWidget(QLabel("Emotion:"))
+        self.emotion_list_widget = QListWidget()
+        self.emotion_list_widget.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.metadata_panel.addWidget(self.emotion_list_widget)
+        self.populate_emotion_list()
+        self.emotion_list_widget.itemClicked.connect(self.handle_emotion_click)
+        self.metadata_panel.addWidget(self.emotion_list_widget)
+
         self.metadata_panel.addWidget(QLabel("Location:"))
         self.location = QLineEdit()
         self.metadata_panel.addWidget(self.location)
@@ -156,31 +164,14 @@ class MainWindow(QWidget):
             self.folder_path = folder
             self.init_db()
             self.scan_folder()
-            self.apply_filter()
+            # self.apply_filter()
     
     def init_db(self):
         db_path = os.path.join(self.folder_path, "metadata.db")
-        self.db = sqlite3.connect(db_path)
-        cursor = self.db.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS ImageMetadata (
-                id INTEGER PRIMARY KEY,
-                filename TEXT UNIQUE,
-                description TEXT,
-                people TEXT,
-                tagged INTEGER DEFAULT 0
-            )
-        """)
-        self.db.commit()
+        self.db = DatabaseManager(db_path)
 
     def apply_filter(self):
-        cursor = self.db.cursor()
-        if self.filter_mode:
-            cursor.execute("SELECT filename FROM ImageMetadata WHERE tagged = 1")
-        else:
-            cursor.execute("SELECT filename FROM ImageMetadata WHERE tagged = 0")
-        self.image_list = [row[0] for row in cursor.fetchall()]
-        self.display_grid_view()
+        pass
     
     def display_grid_view(self):
         self.clear_layout(self.grid_layout)
@@ -216,23 +207,22 @@ class MainWindow(QWidget):
         self.back_button.show()
         self.splitter.setSizes([7, 3])
 
-        cursor = self.db.cursor()
-        cursor.execute("SELECT description, people FROM ImageMetadata WHERE filename = ?", (filename,))
-        row = cursor.fetchone()
-        if row:
-            self.description.setText(row[0] or '')
-            people = row[1].split(',') if row[1] else []
-            for i in range(self.people_list_widget.count()):
-                item = self.people_list_widget.item(i)
-                item.setSelected(item.text() in people)
+        # Load metadata for the current image
 
     def scan_folder(self):
-        cursor = self.db.cursor()
-        for f in os.listdir(self.folder_path):
-            if f.lower().endswith((".jpg", ".jpeg", ".png")):
-                cursor.execute("INSERT OR IGNORE INTO ImageMetadata (filename) VALUES (?)", (f,))
-        self.db.commit()
-    
+        # Get all image files from the folder
+        image_extensions = (".jpg", ".jpeg", ".png", ".raw", ".heif", ".cr2", ".cr3", ".arw", ".tiff")
+        files_in_folder = [
+            f for f in os.listdir(self.folder_path)
+            if f.lower().endswith(image_extensions)
+        ]
+
+        self.image_list = []  # Reset image list
+
+        self.image_list = self.db.insert_images_if_missing(files_in_folder)
+
+        self.display_grid_view()
+        
     def populate_people_list(self):
         self.people_list_widget.clear()
         for person in self.people_list:
@@ -283,8 +273,32 @@ class MainWindow(QWidget):
                             break
                     self.metadata_changed = True
 
+    def populate_emotion_list(self):
+        self.emotion_list_widget.clear()
+        for emotion in ["Happy", "Sad", "Excited", "Nostalgic"]:  # Example values
+            item = QListWidgetItem(emotion)
+            self.emotion_list_widget.addItem(item)
+
+        add_item = QListWidgetItem("+ Add New...")
+        add_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        self.emotion_list_widget.addItem(add_item)
+
+    def handle_emotion_click(self, item):
+        if item.text() == "+ Add New...":
+            name, ok = QInputDialog.getText(self, "Add Emotion", "Enter emotion:")
+            if ok and name.strip():
+                name = name.strip()
+                if name not in [self.emotion_list_widget.item(i).text() for i in range(self.emotion_list_widget.count())]:
+                    self.populate_emotion_list()
+                    for i in range(self.emotion_list_widget.count()):
+                        if self.emotion_list_widget.item(i).text() == name:
+                            self.emotion_list_widget.item(i).setSelected(True)
+                            break
+                    self.metadata_changed = True
+
     def save_metadata(self):
         pass
+
         # Display success message (How to toast in PyQt?)
 
     def next_image(self):
