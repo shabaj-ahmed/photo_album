@@ -118,6 +118,91 @@ The photo album application was developed using a simple, modular design that re
 
 This pragmatic and lightweight architecture supports the project’s goal as a personal or small-scale photo organiser, while still allowing for modest future improvements or extensions.
 
+## Database Schema
+The database schema was chosen to support the structured organisation and retrieval of photos based on associated metadata. The core principles guiding this schema were:
+- **Normalisation** – Repeated data such as people, groups, and emotions are stored in separate tables and linked through join tables to reduce redundancy and maintain data integrity.
+- **Queryability** – The design supports efficient filtering and searching of images by associated tags, such as person, group, or emotion.
+
+<p align="center">
+  <img src="https://github.com/shabaj-ahmed/photo_album/blob/master/ERD.png" width="600" />
+</p>
+<p align="center"><em>Figure 1: Entity-Relationship Diagram illustrating the relationships between the tables in the database.</em></p>
+
+Figure 1 presents the Entity-Relationship Diagram (ERD), which shows how the schema is structured. The `ImageMetadata` table, which stores core metadata for each image. It is linked to three tagging entities: `Person`, `GroupTag`, and `EmotionTag`, each of which contains unique tag values. 
+
+To support many-to-many relationships—where each image can be tagged with multiple people, groups, or emotions, the schema includes three join tables: `ImagePerson`, `ImageGroup`, and `ImageEmotion`. Each join table contains foreign keys that reference the primary keys in `ImageMetadata` and their respective tag tables. This design ensures flexibility and consistency while enabling efficient filtering such as “Show all photos of Shabaj or “Find all images tagged as ‘Happy’.”
+
+### Table Descriptions
+#### `ImageMetadata`
+Stores one row per image with general metadata.
+| Column        | Type    | Description                             |
+| ------------- | ------- | --------------------------------------- |
+| `id`          | INTEGER | Primary key                             |
+| `filename`    | TEXT    | Unique filename of the image            |
+| `description` | TEXT    | User-provided description of the image  |
+| `location`    | TEXT    | Location associated with the image      |
+| `date`        | TEXT    | Date of the image (as string)           |
+| `tagged`      | INTEGER | Boolean flag (1 = tagged, 0 = untagged) |
+
+---
+
+#### `Person`
+Stores unique names of individuals who appear in images.
+| Column        | Type    | Description               |
+| ------------- | ------- | ------------------------- |
+| `id`          | INTEGER | Primary key               |
+| `person_name` | TEXT    | Unique name of the person |
+
+---
+
+#### `ImagePerson`
+Join table linking images to people (many-to-many).
+| Column      | Type    | Description                                     |
+| ----------- | ------- | ----------------------------------------------- |
+| `image_id`  | INTEGER | Foreign key to `ImageMetadata.id`               |
+| `person_id` | INTEGER | Foreign key to `Person.id`                      |
+|             |         | Composite primary key (`image_id`, `person_id`) |
+
+---
+
+#### `GroupTag`
+Stores unique group labels such as “Family” or “Friends”.
+| Column       | Type    | Description       |
+| ------------ | ------- | ----------------- |
+| `id`         | INTEGER | Primary key       |
+| `group_name` | TEXT    | Unique group name |
+
+---
+
+#### `ImageGroup`
+Join table linking images to groups (many-to-many).
+| Column     | Type    | Description                                    |
+| ---------- | ------- | ---------------------------------------------- |
+| `image_id` | INTEGER | Foreign key to `ImageMetadata.id`              |
+| `group_id` | INTEGER | Foreign key to `GroupTag.id`                   |
+|            |         | Composite primary key (`image_id`, `group_id`) |
+
+---
+
+#### `EmotionTag`
+Stores emotion labels associated with photos, e.g. "Happy", "Nostalgic".
+| Column         | Type    | Description         |
+| -------------- | ------- | ------------------- |
+| `id`           | INTEGER | Primary key         |
+| `emotion_name` | TEXT    | Unique emotion name |
+
+---
+
+#### `ImageEmotion`
+Join table linking images to emotions (many-to-many).
+| Column       | Type    | Description                                      |
+| ------------ | ------- | ------------------------------------------------ |
+| `image_id`   | INTEGER | Foreign key to `ImageMetadata.id`                |
+| `emotion_id` | INTEGER | Foreign key to `EmotionTag.id`                   |
+|              |         | Composite primary key (`image_id`, `emotion_id`) |
+
+---
+
 # Future Work / Known Limitations
 While the application meets its core goals, there are a few limitations in the current version and opportunities for future enhancements:
 - **Video Format Support**: At present, the application is designed to work with image files only. Support for video files—such as tagging, thumbnail previews, and filtering—could be added in future versions to allow users to organise all their visual media in one place.
