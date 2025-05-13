@@ -120,7 +120,7 @@ This pragmatic and lightweight architecture supports the project’s goal as a p
 
 ## Database Schema
 The database schema was chosen to support the structured organisation and retrieval of photos based on associated metadata. The core principles guiding this schema were:
-- **Normalisation** – Repeated data such as people, groups, and emotions are stored in separate tables and linked through join tables to reduce redundancy and maintain data integrity.
+- **Normalisation** – Similar data like people, groups, and emotions are stored only once in their own tables, and connected to images through link tables. This avoids repeating the same information and keeps everything accurate and consistent.
 - **Queryability** – The design supports efficient filtering and searching of images by associated tags, such as person, group, or emotion.
 
 <p align="center">
