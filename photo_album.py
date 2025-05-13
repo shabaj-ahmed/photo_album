@@ -60,10 +60,6 @@ class MainWindow(QWidget):
 
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # === Left Panel: Image Display + Nav ===
-        self.left_panel = QWidget()
-        self.image_nav_layout = QVBoxLayout(self.left_panel)
-
         # Image display
             ## Scrollable area for grid view
         self.scroll_area = QScrollArea()
@@ -72,27 +68,27 @@ class MainWindow(QWidget):
         self.grid_widget.setLayout(self.grid_layout)
         self.scroll_area.setWidget(self.grid_widget)
         self.scroll_area.setWidgetResizable(True)
-        self.image_nav_layout.addWidget(self.scroll_area)
 
             ## Full-screen view
+        self.full_image_panel = QVBoxLayout()
+        self.full_image_widget = QWidget()
+        self.full_image_widget.setLayout(self.full_image_panel)
         self.full_image_label = QLabel()
         self.full_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.full_image_label.hide()
-        self.image_nav_layout.addWidget(self.full_image_label)
+        self.full_image_panel.addWidget(self.full_image_label)
 
-        # Navigation buttons
+        # === Left Panel (grid view + nav bar) ===
         self.nav_layout = QHBoxLayout()
-        self.load_button = QPushButton("Load Folder")
         self.prev_button = QPushButton("← Prev")
         self.next_button = QPushButton("Next →")
         self.prev_button.hide()
         self.next_button.hide()
-        self.nav_layout.addWidget(self.load_button)
         self.nav_layout.addWidget(self.prev_button)
         self.nav_layout.addWidget(self.next_button)
-        self.image_nav_layout.addLayout(self.nav_layout)
 
-        self.splitter.addWidget(self.left_panel)
+        self.full_image_panel.addLayout(self.nav_layout)
+        self.splitter.addWidget(self.full_image_widget)
 
         # === Right Panel: Metadata Editor ===
         self.metadata_panel = QVBoxLayout()
@@ -128,15 +124,18 @@ class MainWindow(QWidget):
         self.save_button = QPushButton("Save Metadata")
         self.metadata_panel.addWidget(self.save_button)
 
-
-        # Add to root layout
         self.metadata_widget = QWidget()
         self.metadata_widget.setLayout(self.metadata_panel)
         self.metadata_widget.hide()  # Hide the form layout initially
         self.splitter.addWidget(self.metadata_widget)
         self.splitter.setSizes([7, 3])
 
+        # Setup root layout
+        self.root_layout.addWidget(self.scroll_area)
         self.root_layout.addWidget(self.splitter)
+
+        self.load_button = QPushButton("Load Folder")
+        self.root_layout.addWidget(self.load_button)
 
         self.setLayout(self.root_layout)
 
@@ -152,6 +151,7 @@ class MainWindow(QWidget):
 
     def load_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
+        self.load_button.hide() # Hide the load button after selecting a folder
         if folder:
             self.folder_path = folder
             self.init_db()
@@ -184,12 +184,11 @@ class MainWindow(QWidget):
     
     def display_grid_view(self):
         self.clear_layout(self.grid_layout)
-        self.scroll_area.show()  # Make sure grid area is visible again
+        self.scroll_area.show()
+        self.splitter.hide()
         self.full_image_label.hide()
         self.metadata_widget.hide()
-        self.prev_button.hide()
-        self.next_button.hide()
-        self.back_button.hide()  # Optional: or keep it visible if needed
+        self.back_button.hide()
 
         for i, filename in enumerate(self.image_list):
             image_path = os.path.join(self.folder_path, filename)
@@ -211,11 +210,11 @@ class MainWindow(QWidget):
         pixmap = QPixmap(image_path).scaledToWidth(800, Qt.TransformationMode.SmoothTransformation)
         self.full_image_label.setPixmap(pixmap)
         self.scroll_area.hide()
+        self.splitter.show()
         self.full_image_label.show()
         self.metadata_widget.show()
-        self.prev_button.show()
-        self.next_button.show()
         self.back_button.show()
+        self.splitter.setSizes([7, 3])
 
         cursor = self.db.cursor()
         cursor.execute("SELECT description, people FROM ImageMetadata WHERE filename = ?", (filename,))
