@@ -34,11 +34,16 @@ class MainWindow(QWidget):
         # === Header Layout ===
         self.header_layout = QHBoxLayout()
 
-        # Filters (placeholder for now)
-        # self.filter_checkbox = QCheckBox("Filter by Tags")
-        # self.filter_checkbox.setChecked(self.filter_mode)
-        # self.filter_checkbox.stateChanged.connect(self.toggle_filter_mode)
-        # self.header_layout.addWidget(self.filter_checkbox)
+        # Filter toggle button
+        self.filter_button = QPushButton("Filter")
+        self.filter_button.clicked.connect(self.toggle_filter_panel)
+        self.header_layout.addWidget(self.filter_button)
+
+        # Metadata toggle button
+        self.metadata_button = QPushButton("Toggle Metadata")
+        self.metadata_button.clicked.connect(self.toggle_metadata_panel)
+        self.metadata_button.hide()  # Only show in full image view
+        self.header_layout.addWidget(self.metadata_button)
 
         # Show duplicates toggle (placeholder for now)
 
@@ -78,7 +83,7 @@ class MainWindow(QWidget):
         self.full_image_label.hide()
         self.full_image_panel.addWidget(self.full_image_label)
 
-        # === Left Panel (grid view + nav bar) ===
+        # === grid view + nav bar ===
         self.nav_layout = QHBoxLayout()
         self.prev_button = QPushButton("← Prev")
         self.next_button = QPushButton("Next →")
@@ -88,7 +93,29 @@ class MainWindow(QWidget):
         self.nav_layout.addWidget(self.next_button)
 
         self.full_image_panel.addLayout(self.nav_layout)
-        self.splitter.addWidget(self.full_image_widget)
+
+        # === Left Filter Panel ===
+        self.filter_panel = QVBoxLayout()
+
+        self.filter_panel.addWidget(QLabel("Filter by Tagged Status:"))
+        self.untagged_checkbox = QCheckBox("Show Only Untagged Images")
+        self.filter_panel.addWidget(self.untagged_checkbox)
+
+        # Add filter reset button
+        self.reset_filter_button = QPushButton("Clear Filters")
+        self.reset_filter_button.clicked.connect(self.clear_filters)
+        self.filter_panel.addWidget(self.reset_filter_button)
+
+        # Add apply button
+        self.apply_filter_button = QPushButton("Apply Filters")
+        self.apply_filter_button.clicked.connect(self.apply_filters)
+        self.filter_panel.addWidget(self.apply_filter_button)
+
+        # Wrap into a QWidget and add to splitter
+        self.filter_widget = QWidget()
+        self.filter_widget.setLayout(self.filter_panel)
+        self.filter_widget.hide()  # Initially hidden
+        self.splitter.insertWidget(0, self.filter_widget)  # Insert on left side
 
         # === Right Panel: Metadata Editor ===
         self.metadata_panel = QVBoxLayout()
@@ -135,11 +162,29 @@ class MainWindow(QWidget):
         self.metadata_widget = QWidget()
         self.metadata_widget.setLayout(self.metadata_panel)
         self.metadata_widget.hide()  # Hide the form layout initially
-        self.splitter.addWidget(self.metadata_widget)
-        self.splitter.setSizes([7, 3])
 
         # Setup root layout
-        self.root_layout.addWidget(self.scroll_area)
+        # === Create main view container (holds scroll area and full image panel) ===
+        self.main_view_layout = QVBoxLayout()
+        self.main_view_widget = QWidget()
+        self.main_view_widget.setLayout(self.main_view_layout)
+
+        # Add both views to the main view container
+        self.main_view_layout.addWidget(self.scroll_area)
+        self.main_view_layout.addWidget(self.full_image_widget)
+
+        # Add all three panels to splitter: LEFT (Filter), MIDDLE (Main View), RIGHT (Metadata)
+        self.splitter.addWidget(self.filter_widget)
+        self.splitter.addWidget(self.main_view_widget)
+        self.splitter.addWidget(self.metadata_widget)
+
+        # Initial visibility
+        self.filter_widget.hide()
+        self.metadata_widget.hide()
+        self.full_image_label.hide()
+        self.splitter.setSizes([0, 1, 0])
+
+        # Add only splitter to root layout (NOT scroll area directly)
         self.root_layout.addWidget(self.splitter)
 
         self.load_button = QPushButton("Load Folder")
@@ -152,10 +197,6 @@ class MainWindow(QWidget):
         self.prev_button.clicked.connect(self.prev_image)
         self.next_button.clicked.connect(self.next_image)
         self.save_button.clicked.connect(self.save_metadata)
-    
-    # def toggle_filter_mode(self, state):
-    #     self.filter_mode = bool(state)
-    #     self.apply_filter()
 
     def load_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
@@ -169,19 +210,18 @@ class MainWindow(QWidget):
     def init_db(self):
         db_path = os.path.join(self.folder_path, "metadata.db")
         self.db = DatabaseManager(db_path)
-
-    # def apply_filter(self):
-    #     pass
     
     def display_grid_view(self):
         self.clear_layout(self.grid_layout)
+        self.splitter.show()
         self.scroll_area.show()
-        self.splitter.hide()
         self.full_image_label.hide()
         self.metadata_widget.hide()
+        self.metadata_button.hide()
         self.back_button.hide()
         self.prev_button.hide()
         self.next_button.hide()
+        self.splitter.setSizes([0, 1, 0])
 
 
         for i, filename in enumerate(self.image_list):
@@ -207,8 +247,13 @@ class MainWindow(QWidget):
         self.splitter.show()
         self.full_image_label.show()
         self.metadata_widget.show()
+        self.metadata_button.show()
         self.back_button.show()
-        self.splitter.setSizes([7, 3])
+        self.splitter.setSizes([
+            200 if self.filter_widget.isVisible() else 0,
+            5,
+            3
+        ])
         self.prev_button.show()
         self.next_button.show()
 
@@ -378,6 +423,46 @@ class MainWindow(QWidget):
         if self.current_index > 0:
             self.current_index -= 1
             self.show_fullscreen_image(self.current_index)
+
+    def toggle_filter_panel(self):
+        if self.filter_widget.isVisible():
+            self.filter_widget.hide()
+        else:
+            self.filter_widget.show()
+        self.update_splitter_sizes()
+
+    def toggle_metadata_panel(self):
+        if self.metadata_widget.isVisible():
+            self.metadata_widget.hide()
+        else:
+            self.metadata_widget.show()
+        self.update_splitter_sizes()
+
+    def update_splitter_sizes(self):
+        left = 200 if self.filter_widget.isVisible() else 0
+        right = 300 if self.metadata_widget.isVisible() else 0
+        center = max(600, self.width() - left - right)
+        self.splitter.setSizes([left, center, right])
+
+
+    def apply_filters(self):
+        only_untagged = self.untagged_checkbox.isChecked()
+        # You could add more conditions here later
+        # For now, apply a simple untagged filter
+        self.image_list = self.db.get_filtered_images(only_untagged=only_untagged)
+        self.display_grid_view()
+
+    def clear_filters(self):
+        self.untagged_checkbox.setChecked(False)
+        self.scan_folder()
+
+    def get_filtered_images(self, only_untagged=False):
+        cursor = self.conn.cursor()
+        if only_untagged:
+            cursor.execute("SELECT filename FROM ImageMetadata WHERE tagged = 0")
+        else:
+            cursor.execute("SELECT filename FROM ImageMetadata")
+        return [row[0] for row in cursor.fetchall()]
 
     def clear_layout(self, layout):
         while layout.count():
