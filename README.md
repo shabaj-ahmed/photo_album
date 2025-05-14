@@ -27,7 +27,7 @@ For full details on:
 - **PyQt6** – Graphical user interface
 - **SQLite** – Local metadata storage
 
-## Getting Started
+# Getting Started
 
 To install and run the app locally:
 
