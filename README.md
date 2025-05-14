@@ -21,6 +21,7 @@ For full details on:
 - [Metadata schema & database design](https://github.com/shabaj-ahmed/photo_album/wiki/Database-Schema)
 - [Architectural decisions](https://github.com/shabaj-ahmed/photo_album/wiki/Architecture-Notes)
 - [Future features & limitations](https://github.com/shabaj-ahmed/photo_album/wiki/Future-Work)
+
 👉 [Visit the project Wiki](https://github.com/shabaj-ahmed/photo_album/wiki)
 
 # Technologies Used
