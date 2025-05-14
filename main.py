@@ -26,99 +26,65 @@ class MainWindow(QWidget):
         # self.filter_mode = False # Filter for displaying tagged or untagged images
 
         self.setup_ui()
-    
-    def setup_ui(self):
-        # === Root Layout ===
-        self.root_layout = QVBoxLayout()
 
-        # === Header Layout ===
+    def setup_ui(self):
+        self.root_layout = QVBoxLayout()
+        self.setLayout(self.root_layout)
+
+        self.setup_header()
+        self.setup_filter_panel()
+        self.setup_metadata_panel()
+        self.setup_image_panels()
+        self.setup_splitter()
+        self.setup_footer()
+
+        # Initial splitter state
+        self.filter_widget.hide()
+        self.metadata_widget.hide()
+        self.full_image_label.hide()
+        self.splitter.setSizes([0, 1, 0])
+
+    def setup_header(self):
         self.header_layout = QHBoxLayout()
 
-        # Filter toggle button
         self.filter_button = QPushButton("Filter")
         self.filter_button.clicked.connect(self.toggle_filter_panel)
         self.header_layout.addWidget(self.filter_button)
 
-        # Metadata toggle button
         self.metadata_button = QPushButton("Toggle Metadata")
         self.metadata_button.clicked.connect(self.toggle_metadata_panel)
-        self.metadata_button.hide()  # Only show in full image view
+        self.metadata_button.hide()
         self.header_layout.addWidget(self.metadata_button)
 
-        # Show duplicates toggle (placeholder for now)
-
-        # View selector
         self.back_button = QPushButton("Back to Grid")
         self.back_button.clicked.connect(self.display_grid_view)
         self.back_button.hide()
         self.header_layout.addWidget(self.back_button)
 
-        # Spacer
         self.header_layout.addStretch()
-
-        # Reset/clear all Filters button (placeholder for now)
-
         self.root_layout.addLayout(self.header_layout)
 
-        # === Main Content Layout ===
-        self.main_content_layout = QHBoxLayout()
-
-        self.splitter = QSplitter(Qt.Orientation.Horizontal)
-
-        # Image display
-            ## Scrollable area for grid view
-        self.scroll_area = QScrollArea()
-        self.grid_widget = QWidget()
-        self.grid_layout = QGridLayout()
-        self.grid_widget.setLayout(self.grid_layout)
-        self.scroll_area.setWidget(self.grid_widget)
-        self.scroll_area.setWidgetResizable(True)
-
-            ## Full-screen view
-        self.full_image_panel = QVBoxLayout()
-        self.full_image_widget = QWidget()
-        self.full_image_widget.setLayout(self.full_image_panel)
-        self.full_image_label = QLabel()
-        self.full_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.full_image_label.hide()
-        self.full_image_panel.addWidget(self.full_image_label)
-
-        # === grid view + nav bar ===
-        self.nav_layout = QHBoxLayout()
-        self.prev_button = QPushButton("← Prev")
-        self.next_button = QPushButton("Next →")
-        self.prev_button.hide()
-        self.next_button.hide()
-        self.nav_layout.addWidget(self.prev_button)
-        self.nav_layout.addWidget(self.next_button)
-
-        self.full_image_panel.addLayout(self.nav_layout)
-
-        # === Left Filter Panel ===
+    def setup_filter_panel(self):
         self.filter_panel = QVBoxLayout()
-
         self.filter_panel.addWidget(QLabel("Filter by Tagged Status:"))
+
         self.untagged_checkbox = QCheckBox("Show Only Untagged Images")
         self.filter_panel.addWidget(self.untagged_checkbox)
 
-        # Add filter reset button
         self.reset_filter_button = QPushButton("Clear Filters")
         self.reset_filter_button.clicked.connect(self.clear_filters)
         self.filter_panel.addWidget(self.reset_filter_button)
 
-        # Add apply button
         self.apply_filter_button = QPushButton("Apply Filters")
         self.apply_filter_button.clicked.connect(self.apply_filters)
         self.filter_panel.addWidget(self.apply_filter_button)
 
-        # Wrap into a QWidget and add to splitter
         self.filter_widget = QWidget()
         self.filter_widget.setLayout(self.filter_panel)
-        self.filter_widget.hide()  # Initially hidden
-        self.splitter.insertWidget(0, self.filter_widget)  # Insert on left side
 
-        # === Right Panel: Metadata Editor ===
+    def setup_metadata_panel(self):
         self.metadata_panel = QVBoxLayout()
+
         self.metadata_panel.addWidget(QLabel("Description:"))
         self.description = QTextEdit()
         self.metadata_panel.addWidget(self.description)
@@ -129,7 +95,6 @@ class MainWindow(QWidget):
         self.metadata_panel.addWidget(self.people_list_widget)
         self.populate_people_list()
         self.people_list_widget.itemClicked.connect(self.handle_person_click)
-        self.metadata_panel.addWidget(self.people_list_widget)
 
         self.metadata_panel.addWidget(QLabel("Group:"))
         self.group_list_widget = QListWidget()
@@ -137,7 +102,6 @@ class MainWindow(QWidget):
         self.metadata_panel.addWidget(self.group_list_widget)
         self.populate_group_list()
         self.group_list_widget.itemClicked.connect(self.handle_group_click)
-        self.metadata_panel.addWidget(self.group_list_widget)
 
         self.metadata_panel.addWidget(QLabel("Emotion:"))
         self.emotion_list_widget = QListWidget()
@@ -145,7 +109,6 @@ class MainWindow(QWidget):
         self.metadata_panel.addWidget(self.emotion_list_widget)
         self.populate_emotion_list()
         self.emotion_list_widget.itemClicked.connect(self.handle_emotion_click)
-        self.metadata_panel.addWidget(self.emotion_list_widget)
 
         self.metadata_panel.addWidget(QLabel("Location:"))
         self.location = QLineEdit()
@@ -155,48 +118,67 @@ class MainWindow(QWidget):
         self.date = QLineEdit()
         self.metadata_panel.addWidget(self.date)
 
-        # Save button
         self.save_button = QPushButton("Save Metadata")
+        self.save_button.clicked.connect(self.save_metadata)
         self.metadata_panel.addWidget(self.save_button)
 
         self.metadata_widget = QWidget()
         self.metadata_widget.setLayout(self.metadata_panel)
-        self.metadata_widget.hide()  # Hide the form layout initially
 
-        # Setup root layout
-        # === Create main view container (holds scroll area and full image panel) ===
+    def setup_image_panels(self):
+        self.scroll_area = QScrollArea()
+        self.grid_widget = QWidget()
+        self.grid_layout = QGridLayout()
+        self.grid_widget.setLayout(self.grid_layout)
+        self.scroll_area.setWidget(self.grid_widget)
+        self.scroll_area.setWidgetResizable(True)
+
+        self.full_image_panel = QVBoxLayout()
+        self.full_image_widget = QWidget()
+        self.full_image_widget.setLayout(self.full_image_panel)
+
+        self.full_image_label = QLabel()
+        self.full_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.full_image_panel.addWidget(self.full_image_label)
+
+        self.nav_layout = QHBoxLayout()
+        self.prev_button = QPushButton("← Prev")
+        self.next_button = QPushButton("Next →")
+        self.prev_button.clicked.connect(self.prev_image)
+        self.next_button.clicked.connect(self.next_image)
+        self.prev_button.hide()
+        self.next_button.hide()
+        self.nav_layout.addWidget(self.prev_button)
+        self.nav_layout.addWidget(self.next_button)
+
+        self.full_image_panel.addLayout(self.nav_layout)
+
+        # Combine both scroll and image views into a container
         self.main_view_layout = QVBoxLayout()
         self.main_view_widget = QWidget()
         self.main_view_widget.setLayout(self.main_view_layout)
-
-        # Add both views to the main view container
         self.main_view_layout.addWidget(self.scroll_area)
         self.main_view_layout.addWidget(self.full_image_widget)
 
-        # Add all three panels to splitter: LEFT (Filter), MIDDLE (Main View), RIGHT (Metadata)
+    def setup_splitter(self):
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.addWidget(self.filter_widget)
         self.splitter.addWidget(self.main_view_widget)
         self.splitter.addWidget(self.metadata_widget)
+        self.root_layout.addWidget(self.splitter, stretch=1)
 
-        # Initial visibility
-        self.filter_widget.hide()
-        self.metadata_widget.hide()
-        self.full_image_label.hide()
-        self.splitter.setSizes([0, 1, 0])
-
-        # Add only splitter to root layout (NOT scroll area directly)
-        self.root_layout.addWidget(self.splitter)
-
+    def setup_footer(self):
         self.load_button = QPushButton("Load Folder")
-        self.root_layout.addWidget(self.load_button)
-
-        self.setLayout(self.root_layout)
-
-        # Connect buttons (no change)
         self.load_button.clicked.connect(self.load_folder)
-        self.prev_button.clicked.connect(self.prev_image)
-        self.next_button.clicked.connect(self.next_image)
-        self.save_button.clicked.connect(self.save_metadata)
+
+        self.footer_layout = QHBoxLayout()
+        self.footer_layout.addStretch()
+        self.footer_layout.addWidget(self.load_button)
+        self.footer_layout.addStretch()
+
+        self.footer_widget = QWidget()
+        self.footer_widget.setLayout(self.footer_layout)
+        self.root_layout.addWidget(self.footer_widget)
 
     def load_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
@@ -205,7 +187,7 @@ class MainWindow(QWidget):
             self.folder_path = folder
             self.init_db()
             self.scan_folder()
-            # self.apply_filter()
+            self.footer_widget.hide()
     
     def init_db(self):
         db_path = os.path.join(self.folder_path, "metadata.db")
@@ -222,7 +204,6 @@ class MainWindow(QWidget):
         self.prev_button.hide()
         self.next_button.hide()
         self.splitter.setSizes([0, 1, 0])
-
 
         for i, filename in enumerate(self.image_list):
             image_path = os.path.join(self.folder_path, filename)
