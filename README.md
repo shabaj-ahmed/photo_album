@@ -16,18 +16,16 @@ The project prioritises simplicity, privacy, and offline use. It is not designed
 
 # Documentation
 For full details on:
-* Future features & limitations
 - [System & user requirements](https://github.com/shabaj-ahmed/photo_album/wiki/System-Requirements)
-- [Metadata schema & database design](https://github.com/shabaj-ahmed/photo_album/wiki/Database-Schema)
-- [Architectural decisions](https://github.com/shabaj-ahmed/photo_album/wiki/Architecture-Notes)
+- [Design Decisions](https://github.com/shabaj-ahmed/photo_album/wiki/Design-Decisions)
+- [Architectural decisions and database schema](https://github.com/shabaj-ahmed/photo_album/wiki/Architectural-decisions-and-database-schema)
 - [Future features & limitations](https://github.com/shabaj-ahmed/photo_album/wiki/Future-Work)
 
 👉 [Visit the project Wiki](https://github.com/shabaj-ahmed/photo_album/wiki)
 
-# Technologies Used
-* Python
-* PyQt6
-* SQLite
+# Python libraries Used
+- **PyQt6** – Graphical user interface
+- **SQLite** – Local metadata storage
 
 ## Getting Started
 
