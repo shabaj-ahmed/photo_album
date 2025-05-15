@@ -49,6 +49,7 @@ class MainWindow(QWidget):
 
         self.filter_button = QPushButton("Filter")
         self.filter_button.clicked.connect(self.toggle_filter_panel)
+        self.filter_button.hide()
         self.header_layout.addWidget(self.filter_button)
 
         self.metadata_button = QPushButton("Toggle Metadata")
@@ -245,6 +246,7 @@ class MainWindow(QWidget):
             self.init_db()
             self.scan_folder()
             self.footer_widget.hide()
+            self.filter_button.show()
     
     def init_db(self):
         db_path = os.path.join(self.folder_path, "metadata.db")
@@ -261,10 +263,7 @@ class MainWindow(QWidget):
         self.prev_button.hide()
         self.next_button.hide()
         
-        left = 300 if self.filter_widget.isVisible() else 0
-        right = 300 if self.metadata_widget.isVisible() else 0
-        center = max(600, self.width() - left - right)
-        self.splitter.setSizes([left, center, right])
+        self.update_splitter_sizes()
 
         for i, filename in enumerate(self.image_list):
             image_path = os.path.join(self.folder_path, filename)
@@ -294,10 +293,7 @@ class MainWindow(QWidget):
         self.prev_button.show()
         self.next_button.show()
 
-        left = 300 if self.filter_widget.isVisible() else 0
-        right = 300 if self.metadata_widget.isVisible() else 0
-        center = max(600, self.width() - left - right)
-        self.splitter.setSizes([left, center, right])
+        self.update_splitter_sizes()
 
         # Load from DB
         metadata = self.db.load_image_metadata(filename)
@@ -522,7 +518,7 @@ class MainWindow(QWidget):
         self.update_splitter_sizes()
 
     def update_splitter_sizes(self):
-        left = 200 if self.filter_widget.isVisible() else 0
+        left = 300 if self.filter_widget.isVisible() else 0
         right = 300 if self.metadata_widget.isVisible() else 0
         center = max(600, self.width() - left - right)
         self.splitter.setSizes([left, center, right])
