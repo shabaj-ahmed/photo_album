@@ -3,10 +3,10 @@ import os
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
     QFileDialog, QCheckBox, QLineEdit, QTextEdit, QMessageBox, QListWidget,
-    QListWidgetItem, QInputDialog, QScrollArea, QGridLayout, QSplitter
+    QListWidgetItem, QInputDialog, QScrollArea, QGridLayout, QSplitter, QDateEdit
 )
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QEasingCurve, QPoint
+from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QEasingCurve, QPoint, QDate
 
 from database import DatabaseManager
 
@@ -99,9 +99,21 @@ class MainWindow(QWidget):
         self.filter_panel.addWidget(self.location_filter_input)
 
         # Date
-        self.filter_panel.addWidget(QLabel("Filter by Date:"))
-        self.date_filter_input = QLineEdit()
+        self.use_date_checkbox = QCheckBox("Filter by Date")
+        self.filter_panel.addWidget(self.use_date_checkbox)
+
+        self.date_filter_input = QDateEdit()
+        self.date_filter_input.setCalendarPopup(True)
+        self.date_filter_input.setDisplayFormat("yyyy-MM-dd")
+        self.date_filter_input.setDate(QDate.currentDate())
         self.filter_panel.addWidget(self.date_filter_input)
+
+        # Optional: disable date input by default
+        self.date_filter_input.setEnabled(False)
+
+        self.use_date_checkbox.stateChanged.connect(
+            lambda state: self.date_filter_input.setEnabled(state == Qt.CheckState.Checked.value)
+        )
 
         # Filter controls
         self.reset_filter_button = QPushButton("Clear Filters")
@@ -148,8 +160,20 @@ class MainWindow(QWidget):
         self.metadata_panel.addWidget(self.location)
 
         self.metadata_panel.addWidget(QLabel("Date:"))
-        self.date = QLineEdit()
+        self.use_metadata_date_checkbox = QCheckBox("Specify Date")
+        self.metadata_panel.addWidget(self.use_metadata_date_checkbox)
+
+        self.date = QDateEdit()
+        self.date.setCalendarPopup(True)
+        self.date.setDisplayFormat("yyyy-MM-dd")
+        self.date.setDate(QDate.currentDate())  # Default
+        self.date.setEnabled(False)  # Initially disabled
         self.metadata_panel.addWidget(self.date)
+
+        # Toggle enabling
+        self.use_metadata_date_checkbox.stateChanged.connect(
+            lambda state: self.date.setEnabled(state == Qt.CheckState.Checked.value)
+        )
 
         self.save_button = QPushButton("Save Metadata")
         self.save_button.clicked.connect(self.save_metadata)
@@ -279,7 +303,13 @@ class MainWindow(QWidget):
 
         self.description.setPlainText(metadata["description"])
         self.location.setText(metadata["location"])
-        self.date.setText(metadata["date"])
+        if metadata["date"]:
+            self.use_metadata_date_checkbox.setChecked(True)
+            self.date.setEnabled(True)
+            self.date.setDate(QDate.fromString(metadata["date"], "yyyy-MM-dd"))
+        else:
+            self.use_metadata_date_checkbox.setChecked(False)
+            self.date.setEnabled(False)
 
         for i in range(self.people_list_widget.count()):
             item = self.people_list_widget.item(i)
@@ -385,7 +415,10 @@ class MainWindow(QWidget):
             filename = self.image_list[self.current_index]
             description = self.description.toPlainText()
             location = self.location.text()
-            date = self.date.text()
+            if self.use_metadata_date_checkbox.isChecked():
+                date = self.date.date().toString("yyyy-MM-dd")
+            else:
+                date = ""
 
             # Get selected people
             selected_people = [
@@ -514,7 +547,9 @@ class MainWindow(QWidget):
         selected_groups = [item.text() for item in self.group_filter_list.selectedItems()]
         selected_emotions = [item.text() for item in self.emotion_filter_list.selectedItems()]
         location = self.location_filter_input.text().strip()
-        date = self.date_filter_input.text().strip()
+        date = ""
+        if self.date_filter_input.date() != self.date_filter_input.minimumDate():
+            date = self.date_filter_input.date().toString("yyyy-MM-dd")
 
         self.image_list = self.db.get_filtered_images(
             only_untagged=only_untagged,
@@ -528,6 +563,7 @@ class MainWindow(QWidget):
 
     def clear_filters(self):
         self.untagged_checkbox.setChecked(False)
+        self.date_filter_input.setDate(self.date_filter_input.minimumDate())
         self.scan_folder()
 
     def clear_layout(self, layout):
