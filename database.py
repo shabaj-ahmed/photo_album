@@ -167,3 +167,50 @@ class DatabaseManager:
             WHERE ImageMetadata.filename = ?
         """, (filename,))
         return [row[0] for row in cursor.fetchall()]
+
+    def get_filtered_images(self, only_untagged=False, people=None, groups=None, emotions=None, location="", date=""):
+        cursor = self.conn.cursor()
+
+        query = """
+        SELECT DISTINCT im.filename
+        FROM ImageMetadata im
+        LEFT JOIN ImagePerson ip ON im.id = ip.image_id
+        LEFT JOIN Person p ON ip.person_id = p.id
+        LEFT JOIN ImageGroup ig ON im.id = ig.image_id
+        LEFT JOIN GroupTag gt ON ig.group_id = gt.id
+        LEFT JOIN ImageEmotion ie ON im.id = ie.image_id
+        LEFT JOIN EmotionTag et ON ie.emotion_id = et.id
+        WHERE 1 = 1
+        """
+        params = []
+
+        if only_untagged:
+            query += " AND im.tagged = 0"
+
+        if people:
+            placeholders = ",".join("?" for _ in people)
+            query += f" AND p.name IN ({placeholders})"
+            params.extend(people)
+
+        if groups:
+            placeholders = ",".join("?" for _ in groups)
+            query += f" AND gt.name IN ({placeholders})"
+            params.extend(groups)
+
+        if emotions:
+            placeholders = ",".join("?" for _ in emotions)
+            query += f" AND et.name IN ({placeholders})"
+            params.extend(emotions)
+
+        if location:
+            query += " AND im.location LIKE ?"
+            params.append(f"%{location}%")
+
+        if date:
+            query += " AND im.date LIKE ?"
+            params.append(f"%{date}%")
+
+        query += " ORDER BY im.date DESC"
+
+        cursor.execute(query, params)
+        return [row[0] for row in cursor.fetchall()]

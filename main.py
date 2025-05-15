@@ -66,11 +66,44 @@ class MainWindow(QWidget):
 
     def setup_filter_panel(self):
         self.filter_panel = QVBoxLayout()
-        self.filter_panel.addWidget(QLabel("Filter by Tagged Status:"))
 
+        # Tagged status
+        self.filter_panel.addWidget(QLabel("Filter by Tagged Status:"))
         self.untagged_checkbox = QCheckBox("Show Only Untagged Images")
         self.filter_panel.addWidget(self.untagged_checkbox)
 
+        # People
+        self.filter_panel.addWidget(QLabel("Filter by People:"))
+        self.people_filter_list = QListWidget()
+        self.people_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.people_filter_list)
+        self.populate_people_filter_list()
+
+        # Group
+        self.filter_panel.addWidget(QLabel("Filter by Group:"))
+        self.group_filter_list = QListWidget()
+        self.group_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.group_filter_list)
+        self.populate_group_filter_list()
+
+        # Emotion
+        self.filter_panel.addWidget(QLabel("Filter by Emotion:"))
+        self.emotion_filter_list = QListWidget()
+        self.emotion_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.emotion_filter_list)
+        self.populate_emotion_filter_list()
+
+        # Location
+        self.filter_panel.addWidget(QLabel("Filter by Location:"))
+        self.location_filter_input = QLineEdit()
+        self.filter_panel.addWidget(self.location_filter_input)
+
+        # Date
+        self.filter_panel.addWidget(QLabel("Filter by Date:"))
+        self.date_filter_input = QLineEdit()
+        self.filter_panel.addWidget(self.date_filter_input)
+
+        # Filter controls
         self.reset_filter_button = QPushButton("Clear Filters")
         self.reset_filter_button.clicked.connect(self.clear_filters)
         self.filter_panel.addWidget(self.reset_filter_button)
@@ -425,25 +458,45 @@ class MainWindow(QWidget):
         center = max(600, self.width() - left - right)
         self.splitter.setSizes([left, center, right])
 
+    def populate_people_filter_list(self):
+        self.people_filter_list.clear()
+        for person in self.people_list:
+            item = QListWidgetItem(person)
+            self.people_filter_list.addItem(item)
+
+    def populate_group_filter_list(self):
+        self.group_filter_list.clear()
+        for group in ["Family", "Friend", "Work Group"]:
+            item = QListWidgetItem(group)
+            self.group_filter_list.addItem(item)
+
+    def populate_emotion_filter_list(self):
+        self.emotion_filter_list.clear()
+        for emotion in ["Happy", "Sad", "Excited", "Nostalgic"]:
+            item = QListWidgetItem(emotion)
+            self.emotion_filter_list.addItem(item)
 
     def apply_filters(self):
         only_untagged = self.untagged_checkbox.isChecked()
-        # You could add more conditions here later
-        # For now, apply a simple untagged filter
-        self.image_list = self.db.get_filtered_images(only_untagged=only_untagged)
+        selected_people = [item.text() for item in self.people_filter_list.selectedItems()]
+        selected_groups = [item.text() for item in self.group_filter_list.selectedItems()]
+        selected_emotions = [item.text() for item in self.emotion_filter_list.selectedItems()]
+        location = self.location_filter_input.text().strip()
+        date = self.date_filter_input.text().strip()
+
+        self.image_list = self.db.get_filtered_images(
+            only_untagged=only_untagged,
+            people=selected_people,
+            groups=selected_groups,
+            emotions=selected_emotions,
+            location=location,
+            date=date
+        )
         self.display_grid_view()
 
     def clear_filters(self):
         self.untagged_checkbox.setChecked(False)
         self.scan_folder()
-
-    def get_filtered_images(self, only_untagged=False):
-        cursor = self.conn.cursor()
-        if only_untagged:
-            cursor.execute("SELECT filename FROM ImageMetadata WHERE tagged = 0")
-        else:
-            cursor.execute("SELECT filename FROM ImageMetadata")
-        return [row[0] for row in cursor.fetchall()]
 
     def clear_layout(self, layout):
         while layout.count():
