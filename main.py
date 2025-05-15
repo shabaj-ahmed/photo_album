@@ -260,7 +260,11 @@ class MainWindow(QWidget):
         self.back_button.hide()
         self.prev_button.hide()
         self.next_button.hide()
-        self.splitter.setSizes([0, 1, 0])
+        
+        left = 300 if self.filter_widget.isVisible() else 0
+        right = 300 if self.metadata_widget.isVisible() else 0
+        center = max(600, self.width() - left - right)
+        self.splitter.setSizes([left, center, right])
 
         for i, filename in enumerate(self.image_list):
             image_path = os.path.join(self.folder_path, filename)
@@ -287,13 +291,13 @@ class MainWindow(QWidget):
         self.metadata_widget.show()
         self.metadata_button.show()
         self.back_button.show()
-        self.splitter.setSizes([
-            200 if self.filter_widget.isVisible() else 0,
-            5,
-            3
-        ])
         self.prev_button.show()
         self.next_button.show()
+
+        left = 300 if self.filter_widget.isVisible() else 0
+        right = 300 if self.metadata_widget.isVisible() else 0
+        center = max(600, self.width() - left - right)
+        self.splitter.setSizes([left, center, right])
 
         # Load from DB
         metadata = self.db.load_image_metadata(filename)
@@ -547,24 +551,32 @@ class MainWindow(QWidget):
         selected_groups = [item.text() for item in self.group_filter_list.selectedItems()]
         selected_emotions = [item.text() for item in self.emotion_filter_list.selectedItems()]
         location = self.location_filter_input.text().strip()
-        date = ""
-        if self.date_filter_input.date() != self.date_filter_input.minimumDate():
-            date = self.date_filter_input.date().toString("yyyy-MM-dd")
+        location = location if location else None
+        date = self.date_filter_input.date().toString("yyyy-MM-dd") if self.use_date_checkbox.isChecked() else None
 
         self.image_list = self.db.get_filtered_images(
             only_untagged=only_untagged,
-            people=selected_people,
-            groups=selected_groups,
-            emotions=selected_emotions,
+            people=selected_people or None,
+            groups=selected_groups or None,
+            emotions=selected_emotions or None,
             location=location,
             date=date
         )
         self.display_grid_view()
+        self.show_toast("Filters applied.")
 
     def clear_filters(self):
         self.untagged_checkbox.setChecked(False)
-        self.date_filter_input.setDate(self.date_filter_input.minimumDate())
+        self.location_filter_input.clear()
+        self.use_date_checkbox.setChecked(False)
+        self.date_filter_input.setDate(QDate.currentDate())
+
+        self.people_filter_list.clearSelection()
+        self.group_filter_list.clearSelection()
+        self.emotion_filter_list.clearSelection()
+
         self.scan_folder()
+        self.show_toast("Filters cleared.")
 
     def clear_layout(self, layout):
         while layout.count():

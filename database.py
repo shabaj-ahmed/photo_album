@@ -168,7 +168,7 @@ class DatabaseManager:
         """, (filename,))
         return [row[0] for row in cursor.fetchall()]
 
-    def get_filtered_images(self, only_untagged=False, people=None, groups=None, emotions=None, location="", date=""):
+    def get_filtered_images(self, only_untagged=False, people=None, groups=None, emotions=None, location=None, date=None):
         cursor = self.conn.cursor()
 
         query = """
@@ -207,8 +207,8 @@ class DatabaseManager:
             params.append(f"%{location}%")
 
         if date:
-            query += " AND im.date LIKE ?"
-            params.append(f"%{date}%")
+            query += " AND im.date = ?"
+            params.append(date)
 
         query += " ORDER BY im.date DESC"
 
