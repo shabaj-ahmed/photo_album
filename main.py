@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QListWidgetItem, QInputDialog, QScrollArea, QGridLayout, QSplitter
 )
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QEasingCurve, QPoint
 
 from database import DatabaseManager
 
@@ -271,7 +271,6 @@ class MainWindow(QWidget):
         self.prev_button.show()
         self.next_button.show()
 
-
         # Load from DB
         metadata = self.db.load_image_metadata(filename)
         people = set(self.db.get_people_for_image(filename))
@@ -417,10 +416,43 @@ class MainWindow(QWidget):
                 date=date
             )
 
-            QMessageBox.information(self, "Saved", "Metadata saved.")
+            self.show_toast("Metadata saved.")
             self.metadata_changed = False
 
-        # Display success message (How to toast in PyQt?)
+    def show_toast(self, message, duration=2000):
+        toast = QLabel(message, self)
+        toast.setStyleSheet("""
+            QLabel {
+                background-color: #323232;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+            }
+        """)
+        toast.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        toast.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.ToolTip)
+        toast.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+        toast.adjustSize()
+
+        # Calculate center position relative to window geometry on screen
+        center_x = (self.width() - toast.width()) // 2
+        center_y = (self.height() - toast.height()) // 2
+        global_pos = self.mapToGlobal(QPoint(center_x, center_y))
+        toast.move(global_pos)
+        toast.show()
+
+        # Fade out animation
+        animation = QPropertyAnimation(toast, b"windowOpacity")
+        animation.setDuration(1000)
+        animation.setStartValue(1)
+        animation.setEndValue(0)
+        animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        animation.start()
+
+        animation.finished.connect(toast.deleteLater)
+        QTimer.singleShot(duration, toast.close)
 
     def next_image(self):
         if self.metadata_changed:
