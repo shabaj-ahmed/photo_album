@@ -688,14 +688,32 @@ class MainWindow(QWidget):
         location_region = [item.text() for item in self.region_filter_list.selectedItems()]
         location_city = [item.text() for item in self.city_filter_list.selectedItems()]
         location_country = [item.text() for item in self.country_filter_list.selectedItems()]
-        location = {
-            "name": location_name[0] if location_name else None,
-            "category": location_category[0] if location_category else None,
-            "region": location_region[0] if location_region else None,
-            "city": location_city[0] if location_city else None,
-            "country": location_country[0] if location_country else None
-        } if any([location_name, location_category, location_region, location_city, location_country]) else None
-        location = location if location else None
+        
+        # Gather selected values for each location field
+        location_name = [item.text() for item in self.location_name_filter_list.selectedItems()]
+        location_category = [item.text() for item in self.category_filter_list.selectedItems()]
+        location_region = [item.text() for item in self.region_filter_list.selectedItems()]
+        location_city = [item.text() for item in self.city_filter_list.selectedItems()]
+        location_country = [item.text() for item in self.country_filter_list.selectedItems()]
+
+        # Only build the dictionary if there is at least one selection
+        if any([location_name, location_category, location_region, location_city, location_country]):
+            location = {}
+            if location_name:
+                location["name"] = location_name
+            if location_category:
+                location["category"] = location_category
+            if location_region:
+                location["region"] = location_region
+            if location_city:
+                location["city"] = location_city
+            if location_country:
+                location["country"] = location_country
+        else:
+            location = None
+        
+        print("FILTER DEBUG", location)
+
         date = self.date_filter_input.date().toString("yyyy-MM-dd") if self.use_date_checkbox.isChecked() else None
 
         self.image_list = self.db.get_filtered_images(

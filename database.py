@@ -268,22 +268,13 @@ class DatabaseManager:
             query += f" AND et.name IN ({placeholders})"
             params.extend(emotions)
 
-        if location:
-            if location.get("name"):
-                query += " AND l.name = ?"
-                params.append(location["name"])
-            if location.get("category"):
-                query += " AND l.category = ?"
-                params.append(location["category"])
-            if location.get("country"):
-                query += " AND l.country = ?"
-                params.append(location["country"])
-            if location.get("region"):
-                query += " AND l.region = ?"
-                params.append(location["region"])
-            if location.get("city"):
-                query += " AND l.city = ?"
-                params.append(location["city"])
+        if isinstance(location, dict):
+            for field in ["name", "category", "country", "region", "city"]:
+                values = location.get(field)
+                if values:
+                    placeholders = ",".join("?" for _ in values)
+                    query += f" AND l.{field} IN ({placeholders})"
+                    params.extend(values)
 
         if date:
             query += " AND im.date = ?"
