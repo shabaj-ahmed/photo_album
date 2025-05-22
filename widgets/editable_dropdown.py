@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QComboBox, QInputDialog, QPushButton, QHBoxLayout, QMessageBox, QWidget, QMenu
+    QComboBox, QInputDialog, QMessageBox, QMenu
 )
 from PyQt6.QtCore import Qt, QPoint
 

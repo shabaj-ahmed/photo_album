@@ -99,29 +99,34 @@ class MainWindow(QWidget):
         # Location
         label = QLabel("Filter by location name:")
         self.location_name_filter_list = QListWidget()
-        self.location_name_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         self.filter_panel.addWidget(label)
+        self.location_name_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.location_name_filter_list)
 
         label = QLabel("Filter by Category:")
         self.category_filter_list = QListWidget()
-        self.category_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         self.filter_panel.addWidget(label)
+        self.category_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.category_filter_list)
 
         label = QLabel("Filter by Region:")
         self.region_filter_list = QListWidget()
-        self.region_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         self.filter_panel.addWidget(label)
+        self.region_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.region_filter_list)
 
         label = QLabel("Filter by City:")
         self.city_filter_list = QListWidget()
-        self.city_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         self.filter_panel.addWidget(label)
+        self.city_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.city_filter_list)
 
         label = QLabel("Filter by Country:")
         self.country_filter_list = QListWidget()
-        self.country_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         self.filter_panel.addWidget(label)
-        
+        self.country_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(self.country_filter_list)
+
         self.populate_location_filters()
 
         # Date
@@ -332,6 +337,7 @@ class MainWindow(QWidget):
             self.folder_path = folder
             self.init_db()
             self.scan_folder()
+            self.populate_location_filters()
             self.populate_location_dropdowns()
             self.footer_widget.hide()
             self.filter_button.show()
@@ -577,6 +583,8 @@ class MainWindow(QWidget):
                 date=date
             )
 
+            self.populate_location_filters()
+
             self.show_toast("Metadata saved.")
             self.metadata_changed = False
 
@@ -635,6 +643,7 @@ class MainWindow(QWidget):
         if self.filter_widget.isVisible():
             self.filter_widget.hide()
         else:
+            self.populate_location_filters()
             self.filter_widget.show()
         self.update_splitter_sizes()
 
@@ -674,7 +683,18 @@ class MainWindow(QWidget):
         selected_people = [item.text() for item in self.people_filter_list.selectedItems()]
         selected_groups = [item.text() for item in self.group_filter_list.selectedItems()]
         selected_emotions = [item.text() for item in self.emotion_filter_list.selectedItems()]
-        location = self.location_filter_input.text().strip()
+        location_name = [item.text() for item in self.location_name_filter_list.selectedItems()]
+        location_category = [item.text() for item in self.category_filter_list.selectedItems()]
+        location_region = [item.text() for item in self.region_filter_list.selectedItems()]
+        location_city = [item.text() for item in self.city_filter_list.selectedItems()]
+        location_country = [item.text() for item in self.country_filter_list.selectedItems()]
+        location = {
+            "name": location_name[0] if location_name else None,
+            "category": location_category[0] if location_category else None,
+            "region": location_region[0] if location_region else None,
+            "city": location_city[0] if location_city else None,
+            "country": location_country[0] if location_country else None
+        } if any([location_name, location_category, location_region, location_city, location_country]) else None
         location = location if location else None
         date = self.date_filter_input.date().toString("yyyy-MM-dd") if self.use_date_checkbox.isChecked() else None
 
@@ -691,7 +711,6 @@ class MainWindow(QWidget):
 
     def clear_filters(self):
         self.untagged_checkbox.setChecked(False)
-        self.location_filter_input.clear()
         self.use_date_checkbox.setChecked(False)
         self.date_filter_input.setDate(QDate.currentDate())
 

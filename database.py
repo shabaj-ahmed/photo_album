@@ -269,8 +269,21 @@ class DatabaseManager:
             params.extend(emotions)
 
         if location:
-            query += " AND l.name LIKE ?"
-            params.append(f"%{location}%")
+            if location.get("name"):
+                query += " AND l.name = ?"
+                params.append(location["name"])
+            if location.get("category"):
+                query += " AND l.category = ?"
+                params.append(location["category"])
+            if location.get("country"):
+                query += " AND l.country = ?"
+                params.append(location["country"])
+            if location.get("region"):
+                query += " AND l.region = ?"
+                params.append(location["region"])
+            if location.get("city"):
+                query += " AND l.city = ?"
+                params.append(location["city"])
 
         if date:
             query += " AND im.date = ?"
@@ -284,6 +297,7 @@ class DatabaseManager:
     def get_all_location_names(self):
         cursor = self.conn.cursor()
         cursor.execute("SELECT DISTINCT name FROM Location WHERE name IS NOT NULL")
+        print(f"############## All location names: {cursor.fetchall()}")
         return [row[0] for row in cursor.fetchall()]
 
     def get_all_location_categories(self):
