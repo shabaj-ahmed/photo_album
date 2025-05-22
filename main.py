@@ -729,13 +729,19 @@ class MainWindow(QWidget):
 
     def clear_filters(self):
         self.untagged_checkbox.setChecked(False)
-        self.use_date_checkbox.setChecked(False)
-        self.date_filter_input.setDate(QDate.currentDate())
 
         self.people_filter_list.clearSelection()
         self.group_filter_list.clearSelection()
         self.emotion_filter_list.clearSelection()
+        self.location_name_filter_list.clearSelection()
+        self.category_filter_list.clearSelection()
+        self.region_filter_list.clearSelection()
+        self.city_filter_list.clearSelection()
+        self.country_filter_list.clearSelection()
 
+        self.use_date_checkbox.setChecked(False)
+        self.date_filter_input.setDate(QDate.currentDate())
+        
         self.scan_folder()
         self.show_toast("Filters cleared.")
 
