@@ -12,10 +12,12 @@ class DatabaseManager:
                 id INTEGER PRIMARY KEY,
                 filename TEXT UNIQUE,
                 description TEXT,
-                location TEXT,
                 date TEXT,
-                tagged INTEGER DEFAULT 0
+                tagged INTEGER DEFAULT 0,
+                location_id INTEGER,
+                FOREIGN KEY (location_id) REFERENCES Location(id)
             );
+
 
             CREATE TABLE IF NOT EXISTS Person (
                 id INTEGER PRIMARY KEY,
@@ -55,6 +57,16 @@ class DatabaseManager:
                 FOREIGN KEY (image_id) REFERENCES ImageMetadata(id),
                 FOREIGN KEY (emotion_id) REFERENCES EmotionTag(id)
             );
+            
+            CREATE TABLE IF NOT EXISTS Location (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT,
+                country TEXT,
+                region TEXT,
+                city TEXT,
+                postcode TEXT
+            );
         """)
         self.conn.commit()
 
@@ -79,15 +91,18 @@ class DatabaseManager:
         cursor = self.conn.cursor()
 
         # Step 1: Insert or update ImageMetadata
+        location_id = self.get_or_create_location(location) if location else None
+
         cursor.execute("""
-            INSERT INTO ImageMetadata (filename, description, location, date, tagged)
+            INSERT INTO ImageMetadata (filename, description, location_id, date, tagged)
             VALUES (?, ?, ?, ?, 1)
             ON CONFLICT(filename) DO UPDATE SET
                 description=excluded.description,
-                location=excluded.location,
+                location_id=excluded.location_id,
                 date=excluded.date,
                 tagged=1
-        """, (filename, description, location, date))
+        """, (filename, description, location_id, date))
+
 
         # Step 2: Get image ID
         cursor.execute("SELECT id FROM ImageMetadata WHERE filename = ?", (filename,))
@@ -119,20 +134,70 @@ class DatabaseManager:
             emotion_id = cursor.fetchone()[0]
             cursor.execute("INSERT INTO ImageEmotion (image_id, emotion_id) VALUES (?, ?)", (image_id, emotion_id))
 
+        # Step 7: Insert location
+        location_id = self.get_or_create_location(location) if location else None
+
         self.conn.commit()
+    
+    def get_or_create_location(self, location_data):
+        """
+        Accepts a dictionary with fields: name, category, country, region, city, postcode.
+        Returns the ID of the location.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT id FROM Location
+            WHERE name = ? AND category IS ? AND country IS ? AND region IS ? AND city IS ? AND postcode IS ?
+        """, (
+            location_data.get("name"),
+            location_data.get("category"),
+            location_data.get("country"),
+            location_data.get("region"),
+            location_data.get("city"),
+            location_data.get("postcode")
+        ))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+
+        cursor.execute("""
+            INSERT INTO Location (name, category, country, region, city, postcode)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            location_data.get("name"),
+            location_data.get("category"),
+            location_data.get("country"),
+            location_data.get("region"),
+            location_data.get("city"),
+            location_data.get("postcode")
+        ))
+        self.conn.commit()
+        return cursor.lastrowid
 
     def load_image_metadata(self, filename):
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT description, location, date
-            FROM ImageMetadata
-            WHERE filename = ?
+            SELECT im.description, im.date,
+                l.name, l.category, l.country, l.region, l.city, l.postcode
+            FROM ImageMetadata im
+            LEFT JOIN Location l ON im.location_id = l.id
+            WHERE im.filename = ?
         """, (filename,))
         row = cursor.fetchone()
         return {
             "description": row[0] if row else "",
-            "location": row[1] if row else "",
-            "date": row[2] if row else ""
+            "date": row[1] if row else "",
+            "location": {
+                "name": row[2],
+                "category": row[3],
+                "country": row[4],
+                "region": row[5],
+                "city": row[6],
+                "postcode": row[7],
+            } if row and row[2] else None,
+            "people": self.get_people_for_image(filename),
+            "groups": self.get_groups_for_image(filename),
+            "emotions": self.get_emotions_for_image(filename)
         }
     
     def get_people_for_image(self, filename):
@@ -174,6 +239,7 @@ class DatabaseManager:
         query = """
         SELECT DISTINCT im.filename
         FROM ImageMetadata im
+        LEFT JOIN Location l ON im.location_id = l.id
         LEFT JOIN ImagePerson ip ON im.id = ip.image_id
         LEFT JOIN Person p ON ip.person_id = p.id
         LEFT JOIN ImageGroup ig ON im.id = ig.image_id
@@ -203,7 +269,7 @@ class DatabaseManager:
             params.extend(emotions)
 
         if location:
-            query += " AND im.location LIKE ?"
+            query += " AND l.name LIKE ?"
             params.append(f"%{location}%")
 
         if date:
@@ -214,3 +280,47 @@ class DatabaseManager:
 
         cursor.execute(query, params)
         return [row[0] for row in cursor.fetchall()]
+    
+    def get_all_location_names(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT name FROM Location WHERE name IS NOT NULL")
+        return [row[0] for row in cursor.fetchall()]
+
+    def get_all_location_categories(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT category FROM Location WHERE category IS NOT NULL")
+        return [row[0] for row in cursor.fetchall()]
+    
+    def get_all_location_countries(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT country FROM Location WHERE country IS NOT NULL")
+        return [row[0] for row in cursor.fetchall()]
+    
+    def get_all_location_regions(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT region FROM Location WHERE region IS NOT NULL")
+        return [row[0] for row in cursor.fetchall()]
+    
+    def get_all_location_cities(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT city FROM Location WHERE city IS NOT NULL")
+        return [row[0] for row in cursor.fetchall()]
+    
+    def get_all_location_postcodes(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT postcode FROM Location WHERE postcode IS NOT NULL")
+        return [row[0] for row in cursor.fetchall()]
+    
+    def delete_location_entry(self, field_name, value):
+        if field_name not in ["name", "category", "country", "region", "city", "postcode"]:
+            raise ValueError(f"Invalid location field: {field_name}")
+        cursor = self.conn.cursor()
+        cursor.execute(f"""
+            DELETE FROM Location
+            WHERE {field_name} = ? AND
+                NOT EXISTS (
+                    SELECT 1 FROM ImageMetadata
+                    WHERE Location.id = ImageMetadata.location_id
+                )
+        """, (value,))
+        self.conn.commit()

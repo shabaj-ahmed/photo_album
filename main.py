@@ -10,6 +10,8 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QEasingCurve, QPoint, Q
 
 from database import DatabaseManager
 
+from widgets.editable_dropdown import EditableDropdown
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -95,9 +97,32 @@ class MainWindow(QWidget):
         self.populate_emotion_filter_list()
 
         # Location
-        self.filter_panel.addWidget(QLabel("Filter by Location:"))
-        self.location_filter_input = QLineEdit()
-        self.filter_panel.addWidget(self.location_filter_input)
+        label = QLabel("Filter by location name:")
+        self.location_name_filter_list = QListWidget()
+        self.location_name_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(label)
+
+        label = QLabel("Filter by Category:")
+        self.category_filter_list = QListWidget()
+        self.category_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(label)
+
+        label = QLabel("Filter by Region:")
+        self.region_filter_list = QListWidget()
+        self.region_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(label)
+
+        label = QLabel("Filter by City:")
+        self.city_filter_list = QListWidget()
+        self.city_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(label)
+
+        label = QLabel("Filter by Country:")
+        self.country_filter_list = QListWidget()
+        self.country_filter_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.filter_panel.addWidget(label)
+        
+        self.populate_location_filters()
 
         # Date
         self.use_date_checkbox = QCheckBox("Filter by Date")
@@ -128,6 +153,19 @@ class MainWindow(QWidget):
         self.filter_widget = QWidget()
         self.filter_widget.setLayout(self.filter_panel)
 
+    def populate_location_filters(self):
+        if self.db:
+            self.populate_list(self.location_name_filter_list, self.db.get_all_location_names())
+            self.populate_list(self.category_filter_list, self.db.get_all_location_categories())
+            self.populate_list(self.region_filter_list, self.db.get_all_location_regions())
+            self.populate_list(self.city_filter_list, self.db.get_all_location_cities())
+            self.populate_list(self.country_filter_list, self.db.get_all_location_countries())
+
+    def populate_list(self, widget, items):
+        widget.clear()
+        for value in sorted(set(items)):
+            widget.addItem(QListWidgetItem(value))
+
     def setup_metadata_panel(self):
         self.metadata_panel = QVBoxLayout()
 
@@ -157,8 +195,57 @@ class MainWindow(QWidget):
         self.emotion_list_widget.itemClicked.connect(self.handle_emotion_click)
 
         self.metadata_panel.addWidget(QLabel("Location:"))
-        self.location = QLineEdit()
-        self.metadata_panel.addWidget(self.location)
+        self.use_location_checkbox = QCheckBox("Specify Location")
+        self.metadata_panel.addWidget(self.use_location_checkbox)
+        self.name_dropdown = EditableDropdown(
+            "name",
+            values=[],  # populated after DB init
+            remove_callback=lambda val: self.db.delete_location_entry("name", val)
+        )
+        self.category_dropdown = EditableDropdown(
+            "category",
+            values=[],  # populated after DB init
+            remove_callback=lambda val: self.db.delete_location_entry("category", val)
+        )
+        self.country_dropdown = EditableDropdown(
+            "country",
+            values=[],  # populated after DB init
+            remove_callback=lambda val: self.db.delete_location_entry("country", val)
+        )
+        self.region_dropdown = EditableDropdown(
+            "region",
+            values=[],  # populated after DB init
+            remove_callback=lambda val: self.db.delete_location_entry("region", val)
+        )
+        self.city_dropdown = EditableDropdown(
+            "city",
+            values=[],  # populated after DB init
+            remove_callback=lambda val: self.db.delete_location_entry("city", val)
+        )
+        self.postcode_dropdown = EditableDropdown(
+            "postcode",
+            values=[],  # populated after DB init
+            remove_callback=lambda val: self.db.delete_location_entry("postcode", val)
+        )
+
+        # Add to layout
+        self.location_container = QWidget()
+        self.location_layout = QVBoxLayout()
+        self.location_container.setLayout(self.location_layout)
+
+        self.location_layout.addWidget(self.name_dropdown)
+        self.location_layout.addWidget(self.category_dropdown)
+        self.location_layout.addWidget(self.country_dropdown)
+        self.location_layout.addWidget(self.region_dropdown)
+        self.location_layout.addWidget(self.city_dropdown)
+        self.location_layout.addWidget(self.postcode_dropdown)
+
+        self.use_location_checkbox.stateChanged.connect(
+            lambda state: self.location_container.setVisible(state == Qt.CheckState.Checked.value)
+        )
+        self.location_container.setVisible(False)  # Initially hidden
+
+        self.metadata_panel.addWidget(self.location_container)
 
         self.metadata_panel.addWidget(QLabel("Date:"))
         self.use_metadata_date_checkbox = QCheckBox("Specify Date")
@@ -245,12 +332,21 @@ class MainWindow(QWidget):
             self.folder_path = folder
             self.init_db()
             self.scan_folder()
+            self.populate_location_dropdowns()
             self.footer_widget.hide()
             self.filter_button.show()
     
     def init_db(self):
         db_path = os.path.join(self.folder_path, "metadata.db")
         self.db = DatabaseManager(db_path)
+    
+    def populate_location_dropdowns(self):
+        self.category_dropdown.add_items(self.db.get_all_location_categories())
+        self.country_dropdown.add_items(self.db.get_all_location_countries())
+        self.region_dropdown.add_items(self.db.get_all_location_regions())
+        self.city_dropdown.add_items(self.db.get_all_location_cities())
+        self.postcode_dropdown.add_items(self.db.get_all_location_postcodes())
+        self.name_dropdown.add_items(self.db.get_all_location_names())
     
     def display_grid_view(self):
         self.clear_layout(self.grid_layout)
@@ -259,7 +355,7 @@ class MainWindow(QWidget):
         self.full_image_label.hide()
         self.metadata_widget.hide()
         self.metadata_button.hide()
-        self.back_button.hide()
+        self.back_button.hide() 
         self.prev_button.hide()
         self.next_button.hide()
         
@@ -297,12 +393,8 @@ class MainWindow(QWidget):
 
         # Load from DB
         metadata = self.db.load_image_metadata(filename)
-        people = set(self.db.get_people_for_image(filename))
-        groups = set(self.db.get_groups_for_image(filename))
-        emotions = set(self.db.get_emotions_for_image(filename))
 
         self.description.setPlainText(metadata["description"])
-        self.location.setText(metadata["location"])
         if metadata["date"]:
             self.use_metadata_date_checkbox.setChecked(True)
             self.date.setEnabled(True)
@@ -313,15 +405,39 @@ class MainWindow(QWidget):
 
         for i in range(self.people_list_widget.count()):
             item = self.people_list_widget.item(i)
-            item.setSelected(item.text() in people)
+            item.setSelected(item.text() in metadata["people"])
 
         for i in range(self.group_list_widget.count()):
             item = self.group_list_widget.item(i)
-            item.setSelected(item.text() in groups)
+            item.setSelected(item.text() in metadata["groups"])
 
         for i in range(self.emotion_list_widget.count()):
             item = self.emotion_list_widget.item(i)
-            item.setSelected(item.text() in emotions)
+            item.setSelected(item.text() in metadata["emotions"])
+
+        # Populate location fields if location is present
+        location = metadata.get("location")
+        if location:
+            self.use_location_checkbox.setChecked(True)
+            self.location_container.setVisible(True)
+
+            self.name_dropdown.setCurrentText(location.get("name") or "")
+            self.category_dropdown.setCurrentText(location.get("category") or "")
+            self.country_dropdown.setCurrentText(location.get("country") or "")
+            self.region_dropdown.setCurrentText(location.get("region") or "")
+            self.city_dropdown.setCurrentText(location.get("city") or "")
+            self.postcode_dropdown.setCurrentText(location.get("postcode") or "")
+        else:
+            self.use_location_checkbox.setChecked(False)
+            self.location_container.setVisible(False)
+
+            self.name_dropdown.setCurrentIndex(-1)
+            self.category_dropdown.setCurrentIndex(-1)
+            self.country_dropdown.setCurrentIndex(-1)
+            self.region_dropdown.setCurrentIndex(-1)
+            self.city_dropdown.setCurrentIndex(-1)
+            self.postcode_dropdown.setCurrentIndex(-1)
+
 
     def scan_folder(self):
         # Get all image files from the folder
@@ -414,7 +530,6 @@ class MainWindow(QWidget):
         if 0 <= self.current_index < len(self.image_list):
             filename = self.image_list[self.current_index]
             description = self.description.toPlainText()
-            location = self.location.text()
             if self.use_metadata_date_checkbox.isChecked():
                 date = self.date.date().toString("yyyy-MM-dd")
             else:
@@ -438,6 +553,19 @@ class MainWindow(QWidget):
                 if item.text() != "+ Add New..."
             ]
 
+            # Build location dict only if location is enabled
+            if self.use_location_checkbox.isChecked():
+                location = {
+                    "name": self.name_dropdown.currentText().strip() or None,
+                    "category": self.category_dropdown.currentText().strip() or None,
+                    "country": self.country_dropdown.currentText().strip() or None,
+                    "region": self.region_dropdown.currentText().strip() or None,
+                    "city": self.city_dropdown.currentText().strip() or None,
+                    "postcode": self.postcode_dropdown.currentText().strip() or None
+                }
+            else:
+                location = None
+            
             # Save everything to the database
             self.db.save_metadata(
                 filename=filename,
