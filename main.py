@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QEasingCurve, QPoint, Q
 from database import DatabaseManager
 
 from widgets.editable_dropdown import EditableDropdown
+from widgets.toast import Toast
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -585,43 +586,8 @@ class MainWindow(QWidget):
 
             self.populate_location_filters()
 
-            self.show_toast("Metadata saved.")
+            Toast(self, "Metadata saved.")
             self.metadata_changed = False
-
-    def show_toast(self, message, duration=2000):
-        toast = QLabel(message, self)
-        toast.setStyleSheet("""
-            QLabel {
-                background-color: #323232;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 8px;
-                font-size: 14px;
-            }
-        """)
-        toast.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        toast.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.ToolTip)
-        toast.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-        toast.adjustSize()
-
-        # Calculate center position relative to window geometry on screen
-        center_x = (self.width() - toast.width()) // 2
-        center_y = (self.height() - toast.height()) // 2
-        global_pos = self.mapToGlobal(QPoint(center_x, center_y))
-        toast.move(global_pos)
-        toast.show()
-
-        # Fade out animation
-        animation = QPropertyAnimation(toast, b"windowOpacity")
-        animation.setDuration(1000)
-        animation.setStartValue(1)
-        animation.setEndValue(0)
-        animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
-        animation.start()
-
-        animation.finished.connect(toast.deleteLater)
-        QTimer.singleShot(duration, toast.close)
 
     def next_image(self):
         if self.metadata_changed:
@@ -725,7 +691,7 @@ class MainWindow(QWidget):
             date=date
         )
         self.display_grid_view()
-        self.show_toast("Filters applied.")
+        Toast(self, "Filters applied.")
 
     def clear_filters(self):
         self.untagged_checkbox.setChecked(False)
@@ -741,9 +707,9 @@ class MainWindow(QWidget):
 
         self.use_date_checkbox.setChecked(False)
         self.date_filter_input.setDate(QDate.currentDate())
-        
+
         self.scan_folder()
-        self.show_toast("Filters cleared.")
+        Toast(self, "Filters cleared.")
 
     def clear_layout(self, layout):
         while layout.count():
