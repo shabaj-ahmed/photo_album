@@ -138,7 +138,23 @@ class DatabaseManager:
         location_id = self.get_or_create_location(location) if location else None
 
         self.conn.commit()
-    
+
+    def get_all_people_names(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT name FROM Person ORDER BY name")
+        return [row[0] for row in cursor.fetchall()]
+
+    def get_all_group_names(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT name FROM GroupTag ORDER BY name")
+        return [row[0] for row in cursor.fetchall()]
+
+    def get_all_emotion_names(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT DISTINCT name FROM EmotionTag ORDER BY name")
+        return [row[0] for row in cursor.fetchall()]
+
+        
     def get_or_create_location(self, location_data):
         """
         Accepts a dictionary with fields: name, category, country, region, city, postcode.
@@ -288,7 +304,6 @@ class DatabaseManager:
     def get_all_location_names(self):
         cursor = self.conn.cursor()
         cursor.execute("SELECT DISTINCT name FROM Location WHERE name IS NOT NULL")
-        print(f"############## All location names: {cursor.fetchall()}")
         return [row[0] for row in cursor.fetchall()]
 
     def get_all_location_categories(self):
