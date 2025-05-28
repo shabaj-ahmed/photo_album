@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QPoint
 
+
 class Toast(QLabel):
     def __init__(self, parent, message, duration=2000):
         super().__init__(message, parent)
@@ -14,7 +15,8 @@ class Toast(QLabel):
             }
         """)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.ToolTip)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | Qt.WindowType.ToolTip)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.adjustSize()
 

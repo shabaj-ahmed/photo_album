@@ -674,7 +674,7 @@ class MainWindow(QWidget):
 
         date = self.date_filter_input.date().toString(
             "yyyy-MM-dd") if self.use_date_checkbox.isChecked() else None
-        
+
         Toast(self, "Filters applied.")
 
         return {

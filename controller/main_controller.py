@@ -123,7 +123,7 @@ class MainController:
             location=metadata['location'],
             date=metadata['date']
         )
-        
+
         # Refresh location data to ensure filters and dropdowns are up to date
         self.populate_location_data()
 
@@ -143,7 +143,6 @@ class MainController:
         )
         self.view.image_list = filtered_images
         self.view.display_grid_view()
-
 
     def clear_filters(self):
         if not self.db:

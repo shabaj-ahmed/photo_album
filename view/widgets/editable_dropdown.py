@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPoint
 
+
 class EditableDropdown(QComboBox):
     def __init__(self, label, values=None, parent=None, remove_callback=None):
         super().__init__(parent)
@@ -32,7 +33,7 @@ class EditableDropdown(QComboBox):
         if current_text == "+ Add new...":
             return
         confirm = QMessageBox.question(self, "Confirm Deletion",
-            f"Remove '{current_text}' from {self.label} list?")
+                                       f"Remove '{current_text}' from {self.label} list?")
         if confirm == QMessageBox.StandardButton.Yes:
             index = self.findText(current_text)
             self.removeItem(index)
@@ -40,7 +41,8 @@ class EditableDropdown(QComboBox):
                 self.remove_callback(current_text)
 
     def handle_add_new(self):
-        text, ok = QInputDialog.getText(self, f"Add new {self.label}", f"Enter new {self.label}:")
+        text, ok = QInputDialog.getText(
+            self, f"Add new {self.label}", f"Enter new {self.label}:")
         if ok and text:
             text = text.strip()
             if text and self.findText(text) == -1:
