@@ -1,5 +1,5 @@
-from ui.main_window import MainWindow
-from services.database_manager import DatabaseManager
+from view.main_window import MainWindow
+from model.database_manager import DatabaseManager
 from PyQt6.QtWidgets import QFileDialog
 import os
 
@@ -66,19 +66,19 @@ class MainController:
         self.people_list = self.db.get_all_people_names()
         self.view.people_list = self.people_list
         self.view.populate_people_list(self.people_list)
-        self.view.populate_people_filter_list()
+        self.view.filter_widget.populate_people_filter_list()
 
     def populate_group_list(self):
         self.group_list = self.db.get_all_group_names()
         self.view.group_list = self.group_list
         self.view.populate_group_list(self.group_list)
-        self.view.populate_group_filter_list()
+        self.view.filter_widget.populate_group_filter_list()
 
     def populate_emotion_list(self):
         self.emotion_list = self.db.get_all_emotion_names()
         self.view.emotion_list = self.emotion_list
         self.view.populate_emotion_list(self.emotion_list)
-        self.view.populate_emotion_filter_list()
+        self.view.filter_widget.populate_emotion_filter_list()
 
     def populate_location_data(self):
         self.location_data = {
@@ -92,15 +92,15 @@ class MainController:
 
         # Update filters
         self.view.populate_location_list(
-            self.view.location_name_filter_list, self.location_data['name'])
+            self.view.filter_widget.location_name_filter_list, self.location_data['name'])
         self.view.populate_location_list(
-            self.view.category_filter_list, self.location_data['category'])
+            self.view.filter_widget.category_filter_list, self.location_data['category'])
         self.view.populate_location_list(
-            self.view.region_filter_list, self.location_data['region'])
+            self.view.filter_widget.region_filter_list, self.location_data['region'])
         self.view.populate_location_list(
-            self.view.city_filter_list, self.location_data['city'])
+            self.view.filter_widget.city_filter_list, self.location_data['city'])
         self.view.populate_location_list(
-            self.view.country_filter_list, self.location_data['country'])
+            self.view.filter_widget.country_filter_list, self.location_data['country'])
 
         # Update dropdowns
         self.view.name_dropdown.add_items(self.location_data['name'])
