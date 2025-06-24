@@ -120,8 +120,7 @@ class FilterPanel(QWidget):
 
         self.filter_panel.addWidget(self.apply_filter_button)
 
-        self.filter_widget = QWidget()
-        self.filter_widget.setLayout(self.filter_panel)
+        self.setLayout(self.filter_panel)
 
     def populate_people_filter_list(self):
         self.people_filter_list.clear()

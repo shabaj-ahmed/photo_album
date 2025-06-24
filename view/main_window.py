@@ -40,12 +40,10 @@ class MainWindow(QWidget):
         self.setLayout(self.root_layout)
 
         self.setup_header()
-        self.filter_widget = FilterPanel(
+        self.filter_panel = FilterPanel(
             self.people_list,
             self.group_list,
             self.emotion_list,
-            on_apply_filters=self.on_apply_filters,
-            on_clear_filters=self.on_clear_filters
         )
         self.setup_metadata_panel()
         self.setup_image_panels()
@@ -53,7 +51,7 @@ class MainWindow(QWidget):
         self.setup_footer()
 
         # Initial splitter state
-        self.filter_widget.hide()
+        self.filter_panel.hide()
         self.metadata_widget.hide()
         self.full_image_label.hide()
         self.splitter.setSizes([0, 1, 0])
@@ -231,7 +229,7 @@ class MainWindow(QWidget):
 
     def setup_splitter(self):
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.splitter.addWidget(self.filter_widget)
+        self.splitter.addWidget(self.filter_panel)
         self.splitter.addWidget(self.main_view_widget)
         self.splitter.addWidget(self.metadata_widget)
         self.root_layout.addWidget(self.splitter, stretch=1)
@@ -367,10 +365,10 @@ class MainWindow(QWidget):
             self.show_fullscreen_image(self.current_index)
 
     def toggle_filter_panel(self):
-        if self.filter_widget.isVisible():
-            self.filter_widget.hide()
+        if self.filter_panel.isVisible():
+            self.filter_panel.hide()
         else:
-            self.filter_widget.show()
+            self.filter_panel.show()
         self.update_splitter_sizes()
 
     def toggle_metadata_panel(self):
@@ -381,7 +379,7 @@ class MainWindow(QWidget):
         self.update_splitter_sizes()
 
     def update_splitter_sizes(self):
-        left = 300 if self.filter_widget.isVisible() else 0
+        left = 300 if self.filter_panel.isVisible() else 0
         right = 300 if self.metadata_widget.isVisible() else 0
         center = max(600, self.width() - left - right)
         self.splitter.setSizes([left, center, right])
