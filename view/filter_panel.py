@@ -200,3 +200,8 @@ class FilterPanel(QWidget):
         self.date_filter_input.setDate(QDate.currentDate())
 
         Toast(self, "Filters cleared.")
+
+    def populate_location_list(self, widget, items):
+            widget.clear()
+            for value in sorted(set(items)):
+                widget.addItem(QListWidgetItem(value))

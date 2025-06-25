@@ -28,6 +28,7 @@ class MainController:
         self.view.on_clear_filters = self.clear_filters
         self.view.fetch_metadata = self.get_metadata_for_image
 
+        self.view.metadata_panel.on_save_metadata = self.save_metadata
         self.view.filter_panel.on_apply_filters = self.apply_filters
         self.view.filter_panel.on_clear_filters = self.clear_filters
 
@@ -68,19 +69,19 @@ class MainController:
     def populate_people_list(self):
         self.people_list = self.db.get_all_people_names()
         self.view.people_list = self.people_list
-        self.view.populate_people_list(self.people_list)
+        self.view.metadata_panel.populate_people_list(self.people_list)
         self.view.filter_panel.populate_people_filter_list()
 
     def populate_group_list(self):
         self.group_list = self.db.get_all_group_names()
         self.view.group_list = self.group_list
-        self.view.populate_group_list(self.group_list)
+        self.view.metadata_panel.populate_group_list(self.group_list)
         self.view.filter_panel.populate_group_filter_list()
 
     def populate_emotion_list(self):
         self.emotion_list = self.db.get_all_emotion_names()
         self.view.emotion_list = self.emotion_list
-        self.view.populate_emotion_list(self.emotion_list)
+        self.view.metadata_panel.populate_emotion_list(self.emotion_list)
         self.view.filter_panel.populate_emotion_filter_list()
 
     def populate_location_data(self):
@@ -94,26 +95,27 @@ class MainController:
         }
 
         # Update filters
-        self.view.populate_location_list(
+        self.view.filter_panel.populate_location_list(
             self.view.filter_panel.location_name_filter_list, self.location_data['name'])
-        self.view.populate_location_list(
+        self.view.filter_panel.populate_location_list(
             self.view.filter_panel.category_filter_list, self.location_data['category'])
-        self.view.populate_location_list(
+        self.view.filter_panel.populate_location_list(
             self.view.filter_panel.region_filter_list, self.location_data['region'])
-        self.view.populate_location_list(
+        self.view.filter_panel.populate_location_list(
             self.view.filter_panel.city_filter_list, self.location_data['city'])
-        self.view.populate_location_list(
+        self.view.filter_panel.populate_location_list(
             self.view.filter_panel.country_filter_list, self.location_data['country'])
 
         # Update dropdowns
-        self.view.name_dropdown.add_items(self.location_data['name'])
-        self.view.category_dropdown.add_items(self.location_data['category'])
-        self.view.country_dropdown.add_items(self.location_data['country'])
-        self.view.region_dropdown.add_items(self.location_data['region'])
-        self.view.city_dropdown.add_items(self.location_data['city'])
-        self.view.postcode_dropdown.add_items(self.location_data['postcode'])
+        self.view.metadata_panel.name_dropdown.add_items(self.location_data['name'])
+        self.view.metadata_panel.category_dropdown.add_items(self.location_data['category'])
+        self.view.metadata_panel.country_dropdown.add_items(self.location_data['country'])
+        self.view.metadata_panel.region_dropdown.add_items(self.location_data['region'])
+        self.view.metadata_panel.city_dropdown.add_items(self.location_data['city'])
+        self.view.metadata_panel.postcode_dropdown.add_items(self.location_data['postcode'])
 
     def save_metadata(self, metadata):
+        print("Saving metadata:", metadata)
         if not self.db:
             return
 
