@@ -10,6 +10,8 @@ from .widgets.editable_dropdown import EditableDropdown
 from .filter_panel import FilterPanel
 from .metadata_panel import MetadataPanel
 
+import shutil
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -18,7 +20,7 @@ class MainWindow(QWidget):
 
         self.folder_path = ''
         self.image_list = []
-        self.current_index = -1
+        self.current_image_index = -1
         self.metadata_changed = False
         self.people_list = []
         self.group_list = []
@@ -65,7 +67,7 @@ class MainWindow(QWidget):
         self.filter_button.hide()
         self.header_layout.addWidget(self.filter_button)
 
-        self.metadata_button = QPushButton("Toggle Metadata")
+        self.metadata_button = QPushButton("Show Metadata")
         self.metadata_button.clicked.connect(self.toggle_metadata_panel)
         self.metadata_button.hide()
         self.header_layout.addWidget(self.metadata_button)
@@ -74,6 +76,11 @@ class MainWindow(QWidget):
         self.back_button.clicked.connect(self.display_grid_view)
         self.back_button.hide()
         self.header_layout.addWidget(self.back_button)
+
+        self.delete_image_button = QPushButton("Delete Image")
+        self.delete_image_button.clicked.connect(self.delete_image)
+        self.delete_image_button.hide()
+        self.header_layout.addWidget(self.delete_image_button)
 
         self.header_layout.addStretch()
         self.root_layout.addLayout(self.header_layout)
@@ -143,6 +150,7 @@ class MainWindow(QWidget):
         self.metadata_panel.hide()
         self.metadata_button.hide()
         self.back_button.hide()
+        self.delete_image_button.hide()
         self.prev_button.hide()
         self.next_button.hide()
 
@@ -163,8 +171,8 @@ class MainWindow(QWidget):
             self.grid_layout.addWidget(thumb_label, i // 4, i % 4)
 
     def show_fullscreen_image(self, index):
-        self.current_index = index
-        filename = self.image_list[self.current_index]
+        self.current_image_index = index
+        filename = self.image_list[self.current_image_index]
         self.metadata_panel.set_current_filename(filename)
         image_path = os.path.join(self.folder_path, filename)
         pixmap = QPixmap(image_path).scaledToWidth(
@@ -176,6 +184,7 @@ class MainWindow(QWidget):
         self.metadata_panel.show()
         self.metadata_button.show()
         self.back_button.show()
+        self.delete_image_button.show()
         self.prev_button.show()
         self.next_button.show()
 
@@ -241,18 +250,18 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Unsaved Changes",
                                 "Please save changes before navigating.")
             return
-        if self.current_index < len(self.image_list) - 1:
-            self.current_index += 1
-            self.show_fullscreen_image(self.current_index)
+        if self.current_image_index < len(self.image_list) - 1:
+            self.current_image_index += 1
+            self.show_fullscreen_image(self.current_image_index)
 
     def prev_image(self):
         if self.metadata_changed:
             QMessageBox.warning(self, "Unsaved Changes",
                                 "Please save changes before navigating.")
             return
-        if self.current_index > 0:
-            self.current_index -= 1
-            self.show_fullscreen_image(self.current_index)
+        if self.current_image_index > 0:
+            self.current_image_index -= 1
+            self.show_fullscreen_image(self.current_image_index)
 
     def toggle_filter_panel(self):
         if self.filter_panel.isVisible():
@@ -267,6 +276,26 @@ class MainWindow(QWidget):
         else:
             self.metadata_panel.show()
         self.update_splitter_sizes()
+
+    def delete_image(self):
+        if self.current_image_index == -1 or not self.image_list:
+            return
+
+        filename = self.image_list[self.current_image_index]
+        confirm = QMessageBox.question(self, "Confirm Deletion",
+                                       f"Are you sure you want to delete '{filename}'?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            image_path = os.path.join(self.folder_path, filename)
+            
+            deleted_dir = os.path.join(self.folder_path, "deleted_images")
+            os.makedirs(deleted_dir, exist_ok=True)
+            delete_path = os.path.join(deleted_dir, filename)
+
+            if os.path.exists(image_path):
+                shutil.move(image_path, delete_path)
+                del self.image_list[self.current_image_index]
+                self.display_grid_view()
+                self.current_image_index = -1
 
     def update_splitter_sizes(self):
         left = 300 if self.filter_panel.isVisible() else 0
