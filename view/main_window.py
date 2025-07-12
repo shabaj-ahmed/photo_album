@@ -213,25 +213,28 @@ class MainWindow(QWidget):
         if location:
             self.metadata_panel.use_location_checkbox.setChecked(True)
             self.metadata_panel.location_container.setVisible(True)
-
-            self.metadata_panel.name_dropdown.setCurrentText(location.get("name") or "")
-            self.metadata_panel.category_dropdown.setCurrentText(
-                location.get("category") or "")
-            self.metadata_panel.country_dropdown.setCurrentText(location.get("country") or "")
-            self.metadata_panel.region_dropdown.setCurrentText(location.get("region") or "")
-            self.metadata_panel.city_dropdown.setCurrentText(location.get("city") or "")
-            self.metadata_panel.postcode_dropdown.setCurrentText(
-                location.get("postcode") or "")
+            self.set_dropdown_item(
+                self.metadata_panel.name_dropdown, location.get("name"))
+            self.set_dropdown_item(
+                self.metadata_panel.category_dropdown, location.get("category"))
+            self.set_dropdown_item(
+                self.metadata_panel.country_dropdown, location.get("country"))
+            self.set_dropdown_item(
+                self.metadata_panel.region_dropdown, location.get("region"))
+            self.set_dropdown_item(
+                self.metadata_panel.city_dropdown, location.get("city"))
+            self.set_dropdown_item(
+                self.metadata_panel.postcode_dropdown, location.get("postcode"))
         else:
             self.metadata_panel.use_location_checkbox.setChecked(False)
             self.metadata_panel.location_container.setVisible(False)
 
-            self.metadata_panel.name_dropdown.setCurrentIndex(-1)
-            self.metadata_panel.category_dropdown.setCurrentIndex(-1)
-            self.metadata_panel.country_dropdown.setCurrentIndex(-1)
-            self.metadata_panel.region_dropdown.setCurrentIndex(-1)
-            self.metadata_panel.city_dropdown.setCurrentIndex(-1)
-            self.metadata_panel.postcode_dropdown.setCurrentIndex(-1)
+            self.set_dropdown_item(self.metadata_panel.name_dropdown, None)
+            self.set_dropdown_item(self.metadata_panel.category_dropdown, None)
+            self.set_dropdown_item(self.metadata_panel.country_dropdown, None)
+            self.set_dropdown_item(self.metadata_panel.region_dropdown, None)
+            self.set_dropdown_item(self.metadata_panel.city_dropdown, None)
+            self.set_dropdown_item(self.metadata_panel.postcode_dropdown, None)
 
     def next_image(self):
         if self.metadata_changed:
@@ -276,3 +279,9 @@ class MainWindow(QWidget):
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+    def set_dropdown_item(self, dropdown, label):
+        if label and dropdown.findText(label) != -1:
+            dropdown.setCurrentText(label)
+        else:
+            dropdown.setCurrentIndex(0)

@@ -14,31 +14,14 @@ class EditableDropdown(QComboBox):
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.activated[int].connect(self.handle_index_change)
 
-        self.add_items(values or [])
+        self.add_items([])
 
     def add_items(self, items):
         self.clear()
+        self.addItem(f"+ Add {self.label} label")
         self.addItems(sorted(set(items)))
         self.addItem("+ Add new...")
-
-    def show_context_menu(self, pos: QPoint):
-        menu = QMenu(self)
-        remove_action = menu.addAction("Delete selected item")
-        action = menu.exec(self.mapToGlobal(pos))
-        if action == remove_action:
-            self.remove_selected()
-
-    def remove_selected(self):
-        current_text = self.currentText()
-        if current_text == "+ Add new...":
-            return
-        confirm = QMessageBox.question(self, "Confirm Deletion",
-                                       f"Remove '{current_text}' from {self.label} list?")
-        if confirm == QMessageBox.StandardButton.Yes:
-            index = self.findText(current_text)
-            self.removeItem(index)
-            if self.remove_callback:
-                self.remove_callback(current_text)
+        self.setCurrentIndex(0)
 
     def handle_add_new(self):
         text, ok = QInputDialog.getText(
@@ -49,14 +32,34 @@ class EditableDropdown(QComboBox):
                 self.insertItem(self.count() - 1, text)
             self.setCurrentText(text)
         else:
-            # Reset selection to previous value if cancelled
+            # Reset selection to default value if cancelled
             self.setCurrentIndex(0)
 
+    def show_context_menu(self, pos: QPoint):
+        menu = QMenu(self)
+        remove_action = menu.addAction("Delete selected item")
+        action = menu.exec(self.mapToGlobal(pos))
+        if action == remove_action:
+            self.remove_selected()
+
+    def remove_selected(self):
+        current_text = self.currentText()
+        if current_text[:5] == "+ Add" :
+            return
+        confirm = QMessageBox.question(self, "Confirm Deletion",
+                                       f"Remove '{current_text}' from {self.label} list?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            index = self.findText(current_text)
+            self.removeItem(index)
+            if self.remove_callback:
+                self.remove_callback(current_text)
+    
     def focusOutEvent(self, event):
         if self.currentText() == "+ Add new...":
             self.handle_add_new()
         super().focusOutEvent(event)
 
     def handle_index_change(self, index):
-        if self.itemText(index) == "+ Add new...":
+        text = self.itemText(index)
+        if text == "+ Add new...":
             self.handle_add_new()
