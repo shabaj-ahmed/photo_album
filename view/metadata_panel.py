@@ -198,12 +198,12 @@ class MetadataPanel(QWidget):
 
         if self.use_location_checkbox.isChecked():
             location = {
-                "name": self.name_dropdown.currentText().strip() or None,
-                "category": self.category_dropdown.currentText().strip() or None,
-                "country": self.country_dropdown.currentText().strip() or None,
-                "region": self.region_dropdown.currentText().strip() or None,
-                "city": self.city_dropdown.currentText().strip() or None,
-                "postcode": self.postcode_dropdown.currentText().strip() or None
+                "name": self.name_dropdown.get_selected_value(),
+                "category": self.category_dropdown.get_selected_value(),
+                "country": self.country_dropdown.get_selected_value(),
+                "region": self.region_dropdown.get_selected_value(),
+                "city": self.city_dropdown.get_selected_value(),
+                "postcode": self.postcode_dropdown.get_selected_value()
             }
         else:
             location = None

@@ -64,3 +64,9 @@ class EditableDropdown(QComboBox):
         text = self.itemText(index)
         if text == "+ Add new...":
             self.handle_add_new()
+
+    def get_selected_value(self):
+        value = self.currentText().strip()
+        if value == f"Select a {self.label}" or value == "+ Add new...":
+            return None
+        return value or None
